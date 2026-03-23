@@ -1,6 +1,6 @@
 {
     "name": "semitexa/api",
-    "description": "External API product layer for Semitexa Framework \u2014 machine credentials, external routes, versioning, and M2M contracts",
+    "description": "Semitexa API - external API product layer with machine credentials, versioned routes, and M2M contracts",
     "version": "0.1.0",
     "type": "semitexa-module",
     "license": "MIT",
@@ -32,6 +32,9 @@
     },
     "keywords": [
         "semitexa",
-        "api"
+        "api",
+        "m2m",
+        "machine-auth",
+        "versioning"
     ]
 }
