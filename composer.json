@@ -1,0 +1,37 @@
+{
+    "name": "semitexa/api",
+    "description": "External API product layer for Semitexa Framework \u2014 machine credentials, external routes, versioning, and M2M contracts",
+    "version": "0.1.0",
+    "type": "semitexa-module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Semitexa",
+            "email": "support@semitexa.com"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "semitexa/core": "^1.0",
+        "semitexa/auth": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Semitexa\\Api\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Semitexa\\Api\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "semitexa-module": {
+            "extends": null
+        }
+    },
+    "keywords": [
+        "semitexa",
+        "api"
+    ]
+}
