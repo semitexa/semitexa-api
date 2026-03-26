@@ -43,8 +43,21 @@ final class MachineCredentialRepository extends AbstractRepository implements Ma
         return $credential;
     }
 
-    public function save(MachineCredential $credential): void
+    /**
+     * @param MachineCredential $credential
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function save(object $credential): void
     {
+        if (!$credential instanceof MachineCredential) {
+            throw new \InvalidArgumentException(sprintf(
+                'Expected %s, got %s.',
+                MachineCredential::class,
+                $credential::class,
+            ));
+        }
+
         parent::save($credential);
     }
 
