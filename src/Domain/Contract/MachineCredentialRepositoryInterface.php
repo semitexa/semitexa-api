@@ -34,7 +34,7 @@ interface MachineCredentialRepositoryInterface
     /**
      * Persist a new credential.  Called once at creation time.
      */
-    public function save(MachineCredential $credential): void;
+    public function save(object $credential): void;
 
     /**
      * Persist audit field changes (lastUsedAt, requestCount) and revocation status.

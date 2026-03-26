@@ -43,7 +43,7 @@ final class MachineCredentialRepository extends AbstractRepository implements Ma
         return $credential;
     }
 
-    public function save(MachineCredential $credential): void
+    public function save(object $credential): void
     {
         parent::save($credential);
     }
