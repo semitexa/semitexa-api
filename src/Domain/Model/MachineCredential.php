@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Semitexa\Api\Domain\Model;
 
+
 /**
  * Domain entity representing a machine (M2M) API credential.
  *
@@ -21,14 +22,8 @@ namespace Semitexa\Api\Domain\Model;
  * - $lastUsedAt and $requestCount are updated by the auth handler on every
  *   successful authentication.  Write them via the setter; never mutate directly.
  */
-final class MachineCredential
+final readonly class MachineCredential
 {
-    private \DateTimeImmutable $createdAt;
-    private ?\DateTimeImmutable $lastUsedAt = null;
-    private int $requestCount = 0;
-    private ?\DateTimeImmutable $rotatedAt = null;
-    private ?\DateTimeImmutable $revokedAt = null;
-
     /**
      * @param list<string> $scopes       Scopes granted to this credential
      * @param string|null  $tenantId     Optional tenant association (null = global)
@@ -37,21 +32,15 @@ final class MachineCredential
     public function __construct(
         private readonly string $id,
         private readonly string $clientName,
-        private string $secretHash,
-        private array $scopes = [],
+        private readonly string $secretHash,
+        private readonly array $scopes = [],
         private readonly ?string $tenantId = null,
-        ?\DateTimeImmutable $createdAt = null,
-        ?\DateTimeImmutable $lastUsedAt = null,
-        int $requestCount = 0,
-        ?\DateTimeImmutable $rotatedAt = null,
-        ?\DateTimeImmutable $revokedAt = null,
-    ) {
-        $this->createdAt = $createdAt ?? new \DateTimeImmutable();
-        $this->lastUsedAt = $lastUsedAt;
-        $this->requestCount = max(0, $requestCount);
-        $this->rotatedAt = $rotatedAt;
-        $this->revokedAt = $revokedAt;
-    }
+        private readonly \DateTimeImmutable $createdAt = new \DateTimeImmutable(),
+        private readonly ?\DateTimeImmutable $lastUsedAt = null,
+        private readonly int $requestCount = 0,
+        private readonly ?\DateTimeImmutable $rotatedAt = null,
+        private readonly ?\DateTimeImmutable $revokedAt = null,
+    ) {}
 
     public function getId(): string
     {
@@ -121,29 +110,60 @@ final class MachineCredential
 
     // --- Mutation ---
 
-    public function revoke(?\DateTimeImmutable $revokedAt = null): void
+    public function revoke(?\DateTimeImmutable $revokedAt = null): self
     {
-        $this->revokedAt = $revokedAt ?? new \DateTimeImmutable();
+        return new self(
+            id: $this->id,
+            clientName: $this->clientName,
+            secretHash: $this->secretHash,
+            scopes: $this->scopes,
+            tenantId: $this->tenantId,
+            createdAt: $this->createdAt,
+            lastUsedAt: $this->lastUsedAt,
+            requestCount: $this->requestCount,
+            rotatedAt: $this->rotatedAt,
+            revokedAt: $revokedAt ?? new \DateTimeImmutable(),
+        );
     }
 
     /**
      * Rotate the secret hash.  Call only after generating and presenting the new
      * raw secret to the caller exactly once.
      */
-    public function rotateSecretHash(string $newHash, ?\DateTimeImmutable $rotatedAt = null): void
+    public function rotateSecretHash(string $newHash, ?\DateTimeImmutable $rotatedAt = null): self
     {
-        $this->secretHash = $newHash;
-        $this->rotatedAt = $rotatedAt ?? new \DateTimeImmutable();
+        return new self(
+            id: $this->id,
+            clientName: $this->clientName,
+            secretHash: $newHash,
+            scopes: $this->scopes,
+            tenantId: $this->tenantId,
+            createdAt: $this->createdAt,
+            lastUsedAt: $this->lastUsedAt,
+            requestCount: $this->requestCount,
+            rotatedAt: $rotatedAt ?? new \DateTimeImmutable(),
+            revokedAt: $this->revokedAt,
+        );
     }
 
     /**
      * Update audit fields after a successful authentication.
      * The auth handler calls this; the repository is responsible for persisting it.
      */
-    public function recordUsage(\DateTimeImmutable $at): void
+    public function recordUsage(\DateTimeImmutable $at): self
     {
-        $this->lastUsedAt = $at;
-        $this->requestCount++;
+        return new self(
+            id: $this->id,
+            clientName: $this->clientName,
+            secretHash: $this->secretHash,
+            scopes: $this->scopes,
+            tenantId: $this->tenantId,
+            createdAt: $this->createdAt,
+            lastUsedAt: $at,
+            requestCount: $this->requestCount + 1,
+            rotatedAt: $this->rotatedAt,
+            revokedAt: $this->revokedAt,
+        );
     }
 
     /**

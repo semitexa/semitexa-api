@@ -66,7 +66,7 @@ final class MachineAuthHandler implements AuthHandlerInterface
             return AuthResult::failed('Invalid machine credential secret.');
         }
 
-        $credential->recordUsage(new \DateTimeImmutable());
+        $credential = $credential->recordUsage(new \DateTimeImmutable());
         $this->credentials->update($credential);
 
         return AuthResult::success(new MachinePrincipal($credential));
