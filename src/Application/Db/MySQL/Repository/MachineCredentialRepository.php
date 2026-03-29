@@ -73,6 +73,6 @@ final class MachineCredentialRepository implements MachineCredentialRepositoryIn
 
     private function orm(): OrmManager
     {
-        return $this->orm ??= new OrmManager();
+        return $this->orm ?? throw new \RuntimeException('OrmManager not injected into ' . self::class . '.');
     }
 }

@@ -40,7 +40,9 @@ final readonly class MachineCredential
         private readonly int $requestCount = 0,
         private readonly ?\DateTimeImmutable $rotatedAt = null,
         private readonly ?\DateTimeImmutable $revokedAt = null,
-    ) {}
+    ) {
+        $this->requestCount = max(0, $requestCount);
+    }
 
     public function getId(): string
     {
