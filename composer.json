@@ -1,40 +1,39 @@
 {
-    "name": "semitexa/api",
-    "description": "Semitexa API - external API product layer with machine credentials, versioned routes, and M2M contracts",
-    "version": "v0.1.2",
-    "type": "semitexa-module",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Semitexa",
-            "email": "support@semitexa.com"
-        }
-    ],
-    "require": {
-        "php": "^8.4",
-        "semitexa/core": "^1.0",
-        "semitexa/auth": "^1.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Semitexa\\Api\\": "src/"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Semitexa\\Api\\Tests\\": "tests/"
-        }
-    },
-    "extra": {
-        "semitexa-module": {
-            "extends": null
-        }
-    },
-    "keywords": [
-        "semitexa",
-        "api",
-        "m2m",
-        "machine-auth",
-        "versioning"
-    ]
+  "name": "semitexa/api",
+  "description": "Semitexa API - external API product layer with machine credentials, versioned routes, and M2M contracts",
+  "type": "semitexa-module",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Semitexa",
+      "email": "support@semitexa.com"
+    }
+  ],
+  "require": {
+    "php": "^8.4",
+    "semitexa/core": "^1.0",
+    "semitexa/auth": "^1.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Semitexa\\Api\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Semitexa\\Api\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "semitexa-module": {
+      "extends": null
+    }
+  },
+  "keywords": [
+    "semitexa",
+    "api",
+    "m2m",
+    "machine-auth",
+    "versioning"
+  ]
 }
