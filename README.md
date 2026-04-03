@@ -1,4 +1,4 @@
-# semitexa/api
+# Semitexa API
 
 External API product layer for Semitexa with machine-to-machine authentication, versioned routes, and structured error envelopes.
 
