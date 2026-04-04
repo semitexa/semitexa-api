@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Semitexa\Api\Pipeline;
 
-use Semitexa\Core\Attributes\InjectAsReadonly;
-use Semitexa\Core\Attributes\SatisfiesServiceContract;
+use Semitexa\Core\Attribute\InjectAsReadonly;
+use Semitexa\Core\Attribute\SatisfiesServiceContract;
 use Semitexa\Core\Contract\ExceptionResponseMapperInterface;
 use Semitexa\Core\Discovery\ResolvedRouteMetadata;
 use Semitexa\Core\Exception\DomainException;
 use Semitexa\Core\Exception\RateLimitException;
 use Semitexa\Core\Pipeline\ExceptionMapper;
 use Semitexa\Core\Request;
-use Semitexa\Core\Response;
+use Semitexa\Core\HttpResponse;
 
 /**
  * Machine-facing error envelope formatter for external API routes.
@@ -44,7 +44,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     #[InjectAsReadonly]
     protected ExceptionMapper $coreMapper;
 
-    public function map(\Throwable $e, Request $request, ResolvedRouteMetadata $metadata): Response
+    public function map(\Throwable $e, Request $request, ResolvedRouteMetadata $metadata): HttpResponse
     {
         // Non-external routes keep Core default semantics.
         if (!$metadata->hasExtension('external_api')) {
@@ -63,7 +63,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
         DomainException $e,
         Request $request,
         ResolvedRouteMetadata $metadata,
-    ): Response {
+    ): HttpResponse {
         $status = $e->getStatusCode();
 
         $body = [
@@ -76,7 +76,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
             ],
         ];
 
-        $response = Response::json($body, $status->value);
+        $response = HttpResponse::json($body, $status->value);
 
         if ($e instanceof RateLimitException) {
             $response = $response->withHeaders(['Retry-After' => (string) $e->getRetryAfter()]);

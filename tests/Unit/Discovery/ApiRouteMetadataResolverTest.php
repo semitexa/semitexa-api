@@ -24,7 +24,7 @@ final class ApiRouteMetadataResolverTest extends TestCase
             'name' => 'api.test',
             'methods' => ['GET'],
             'class' => ApiRouteMetadataResolverFixturePayload::class,
-            'responseClass' => 'Semitexa\\Core\\Http\\Response\\GenericResponse',
+            'responseClass' => 'Semitexa\\Core\\Http\\Response\\ResourceResponse',
             'handlers' => [],
             'requirements' => [],
         ]);
