@@ -44,6 +44,14 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     #[InjectAsReadonly]
     protected ExceptionMapper $coreMapper;
 
+    public function withCoreMapper(ExceptionMapper $coreMapper): self
+    {
+        $clone = clone $this;
+        $clone->coreMapper = $coreMapper;
+
+        return $clone;
+    }
+
     public function map(\Throwable $e, Request $request, ResolvedRouteMetadata $metadata): HttpResponse
     {
         // Non-external routes keep Core default semantics.
