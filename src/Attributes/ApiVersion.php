@@ -20,7 +20,7 @@ use Attribute;
  *
  * Usage:
  * ```php
- * #[AsPayload(path: '/api/v1/users', methods: ['GET'], responseWith: GenericResponse::class)]
+ * #[AsPayload(path: '/api/v1/users', methods: ['GET'], responseWith: ResourceResponse::class)]
  * #[ExternalApi(version: 'v1')]
  * #[ApiVersion(version: '1.0.0', deprecatedSince: '2026-06-01', sunsetDate: '2026-12-01')]
  * class UserListPayload { ... }

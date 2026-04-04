@@ -7,7 +7,7 @@ namespace Semitexa\Api\Auth;
 use Semitexa\Api\Domain\Contract\MachineCredentialRepositoryInterface;
 use Semitexa\Auth\Attribute\AsAuthHandler;
 use Semitexa\Auth\Handler\AuthHandlerInterface;
-use Semitexa\Core\Attributes\InjectAsReadonly;
+use Semitexa\Core\Attribute\InjectAsReadonly;
 use Semitexa\Core\Auth\AuthResult;
 use Semitexa\Core\Request;
 

@@ -8,7 +8,7 @@ use PHPUnit\Framework\TestCase;
 use Semitexa\Api\Pipeline\ExternalApiResponseDecorator;
 use Semitexa\Core\Discovery\ResolvedRouteMetadata;
 use Semitexa\Core\Request;
-use Semitexa\Core\Response;
+use Semitexa\Core\HttpResponse;
 
 final class ExternalApiResponseDecoratorTest extends TestCase
 {
@@ -16,7 +16,7 @@ final class ExternalApiResponseDecoratorTest extends TestCase
     {
         $decorator = new ExternalApiResponseDecorator();
         $request = new Request('GET', '/api/platform/users', [], [], [], [], []);
-        $response = Response::json(['ok' => true]);
+        $response = HttpResponse::json(['ok' => true]);
         $metadata = new ResolvedRouteMetadata(
             path: '/api/platform/users',
             name: 'platform.users.index',
@@ -48,7 +48,7 @@ final class ExternalApiResponseDecoratorTest extends TestCase
     {
         $decorator = new ExternalApiResponseDecorator();
         $request = new Request('GET', '/internal', [], [], [], [], []);
-        $response = Response::json(['ok' => true]);
+        $response = HttpResponse::json(['ok' => true]);
         $metadata = new ResolvedRouteMetadata(
             path: '/internal',
             name: 'internal.index',
