@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Semitexa\Api\Attributes;
+namespace Semitexa\Api\Attribute;
 
 use Attribute;
 

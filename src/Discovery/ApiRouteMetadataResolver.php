@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Semitexa\Api\Discovery;
 
 use ReflectionClass;
-use Semitexa\Api\Attributes\ApiVersion;
-use Semitexa\Api\Attributes\ExternalApi;
+use Semitexa\Api\Attribute\ApiVersion;
+use Semitexa\Api\Attribute\ExternalApi;
 use Semitexa\Core\Attribute\InjectAsReadonly;
 use Semitexa\Core\Attribute\SatisfiesServiceContract;
 use Semitexa\Core\Contract\RouteMetadataResolverInterface;
 use Semitexa\Core\Discovery\DefaultRouteMetadataResolver;
+use Semitexa\Core\Discovery\DiscoveredRoute;
 use Semitexa\Core\Discovery\ResolvedRouteMetadata;
 
 /**
@@ -38,12 +39,12 @@ final class ApiRouteMetadataResolver implements RouteMetadataResolverInterface
     /** @var array<string, array<string,mixed>> className => extensions map */
     private static array $cache = [];
 
-    public function resolve(array $route): ResolvedRouteMetadata
+    public function resolve(DiscoveredRoute $route): ResolvedRouteMetadata
     {
         $base = $this->coreResolver->resolve($route);
 
-        $requestClass = $route['class'] ?? null;
-        if ($requestClass === null || !class_exists($requestClass)) {
+        $requestClass = $route->requestClass;
+        if ($requestClass === '' || !class_exists($requestClass)) {
             return $base;
         }
 
