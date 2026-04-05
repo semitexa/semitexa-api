@@ -6,8 +6,8 @@ namespace Semitexa\Api\Tests\Unit\Discovery;
 
 use PHPUnit\Framework\TestCase;
 use ReflectionProperty;
-use Semitexa\Api\Attributes\ApiVersion;
-use Semitexa\Api\Attributes\ExternalApi;
+use Semitexa\Api\Attribute\ApiVersion;
+use Semitexa\Api\Attribute\ExternalApi;
 use Semitexa\Api\Discovery\ApiRouteMetadataResolver;
 use Semitexa\Core\Discovery\DefaultRouteMetadataResolver;
 

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Semitexa\Api\Attributes;
+namespace Semitexa\Api\Attribute;
 
 use Attribute;
 
@@ -33,4 +33,8 @@ final class ExternalApi
         /** Optional human-readable description shown in API documentation. */
         public readonly string $description = '',
     ) {}
+}
+
+if (!class_exists(\Semitexa\Api\Attributes\ExternalApi::class, false)) {
+    class_alias(ExternalApi::class, \Semitexa\Api\Attributes\ExternalApi::class);
 }
