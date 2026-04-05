@@ -49,3 +49,7 @@ final class ApiVersion
         return $this->deprecatedSince !== null;
     }
 }
+
+if (!class_exists(\Semitexa\Api\Attributes\ApiVersion::class, false)) {
+    class_alias(ApiVersion::class, \Semitexa\Api\Attributes\ApiVersion::class);
+}

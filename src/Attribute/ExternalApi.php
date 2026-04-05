@@ -34,3 +34,7 @@ final class ExternalApi
         public readonly string $description = '',
     ) {}
 }
+
+if (!class_exists(\Semitexa\Api\Attributes\ExternalApi::class, false)) {
+    class_alias(ExternalApi::class, \Semitexa\Api\Attributes\ExternalApi::class);
+}
