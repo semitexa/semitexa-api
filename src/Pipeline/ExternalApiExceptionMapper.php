@@ -63,8 +63,8 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
             return $this->mapDomainException($e, $request, $metadata);
         }
 
-        // Unknown exceptions are re-thrown; Application logs and converts them.
-        throw $e;
+        // Unknown exceptions fall through to Core mapper (JSON 500 envelope).
+        return $this->coreMapper->map($e, $request, $metadata);
     }
 
     private function mapDomainException(

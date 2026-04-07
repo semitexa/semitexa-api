@@ -24,9 +24,11 @@ final class ExternalApiResponseDecorator implements RouteResponseDecoratorInterf
             return $response;
         }
 
-        $headers = [
-            'X-Api-Version' => (string) ($apiVersion['version'] ?? ''),
-        ];
+        $version = (string) ($apiVersion['version'] ?? '');
+        $headers = [];
+        if ($version !== '') {
+            $headers['X-Api-Version'] = $version;
+        }
 
         if (($apiVersion['deprecated_since'] ?? null) !== null) {
             $headers['Deprecation'] = (string) $apiVersion['deprecated_since'];
