@@ -97,7 +97,7 @@ final class MachineAuthHandler implements AuthHandlerInterface
 
         $rawToken = substr($authHeader, 7);
         $colonPos = strpos($rawToken, ':');
-        if ($colonPos === false || $colonPos === 0) {
+        if ($colonPos === false || $colonPos === 0 || $colonPos === strlen($rawToken) - 1) {
             return null;
         }
 

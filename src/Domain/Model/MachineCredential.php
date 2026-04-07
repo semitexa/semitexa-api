@@ -24,6 +24,8 @@ namespace Semitexa\Api\Domain\Model;
  */
 final readonly class MachineCredential
 {
+    private int $requestCount;
+
     /**
      * @param list<string> $scopes       Scopes granted to this credential
      * @param string|null  $tenantId     Optional tenant association (null = global)
@@ -37,7 +39,7 @@ final readonly class MachineCredential
         private readonly ?string $tenantId = null,
         private readonly \DateTimeImmutable $createdAt = new \DateTimeImmutable(),
         private readonly ?\DateTimeImmutable $lastUsedAt = null,
-        private readonly int $requestCount = 0,
+        int $requestCount = 0,
         private readonly ?\DateTimeImmutable $rotatedAt = null,
         private readonly ?\DateTimeImmutable $revokedAt = null,
     ) {
