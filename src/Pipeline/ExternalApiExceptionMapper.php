@@ -18,7 +18,8 @@ use Semitexa\Core\HttpResponse;
  * Machine-facing error envelope formatter for external API routes.
  *
  * Routes that carry the 'external_api' extension flag (added by #[ExternalApi])
- * receive a stable JSON envelope suitable for API consumers and M2M clients:
+ * receive a stable JSON envelope suitable for API consumers and M2M clients
+ * when the exception is a DomainException:
  *
  * ```json
  * {
@@ -33,7 +34,8 @@ use Semitexa\Core\HttpResponse;
  * ```
  *
  * Routes that do NOT carry the 'external_api' flag fall through to the Core
- * ExceptionMapper to preserve existing behavior exactly.
+ * ExceptionMapper to preserve existing behavior exactly. Unknown exceptions on
+ * external routes also fall back to the Core mapper's generic 500 envelope.
  *
  * This class overrides the ExceptionResponseMapperInterface binding. Only one
  * mapper is active at a time; semitexa-api provides this implementation when installed.
@@ -63,7 +65,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
             return $this->mapDomainException($e, $request, $metadata);
         }
 
-        // Unknown exceptions fall through to Core mapper (JSON 500 envelope).
+        // Unknown exceptions fall through to Core mapper (generic 500 envelope).
         return $this->coreMapper->map($e, $request, $metadata);
     }
 

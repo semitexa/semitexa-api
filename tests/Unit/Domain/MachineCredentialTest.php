@@ -32,4 +32,16 @@ final class MachineCredentialTest extends TestCase
         self::assertNotSame($used, $revoked);
         self::assertNotSame($revoked, $rotated);
     }
+
+    public function testNegativeRequestCountIsClampedToZero(): void
+    {
+        $credential = new MachineCredential(
+            id: 'cred-2',
+            clientName: 'batch-worker',
+            secretHash: password_hash('secret-456', PASSWORD_ARGON2ID),
+            requestCount: -5,
+        );
+
+        self::assertSame(0, $credential->getRequestCount());
+    }
 }

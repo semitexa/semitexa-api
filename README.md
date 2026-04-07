@@ -4,7 +4,7 @@ External API product layer for Semitexa with machine-to-machine authentication, 
 
 ## Purpose
 
-Provides the opt-in external API surface for Semitexa applications. Routes marked with `#[ExternalApi]` receive machine-facing JSON error envelopes, Bearer token M2M authentication via `MachineAuthHandler`, and API versioning with `#[ApiVersion]` including deprecation and sunset headers.
+Provides the opt-in external API surface for Semitexa applications. Routes marked with `#[ExternalApi]` receive machine-facing JSON error envelopes for domain failures, Bearer token M2M authentication via `MachineAuthHandler`, and API versioning with `#[ApiVersion]` including deprecation and sunset headers.
 
 ## Role in Semitexa
 
@@ -15,7 +15,7 @@ Depends on `semitexa/core` and `semitexa/auth`. Enriches Core's route metadata w
 - `#[ExternalApi]` attribute for opt-in API route designation
 - `#[ApiVersion]` with deprecation and sunset metadata headers
 - `MachineAuthHandler` supporting Bearer `{id}:{secret}` token format
-- `ExternalApiExceptionMapper` producing machine-readable JSON error envelopes
+- `ExternalApiExceptionMapper` producing machine-readable JSON error envelopes for `DomainException` routes and falling back to Core's generic 500 response for unexpected throwables
 - `MachinePrincipal` implementing `AuthenticatableInterface`
 - `MachineCredential` entity with scopes, revocation, and audit support
 
