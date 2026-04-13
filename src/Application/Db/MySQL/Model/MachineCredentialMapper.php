@@ -8,7 +8,7 @@ use Semitexa\Api\Domain\Model\MachineCredential;
 use Semitexa\Orm\Attribute\AsMapper;
 use Semitexa\Orm\Contract\TableModelMapper;
 
-#[AsMapper(tableModel: MachineCredentialTableModel::class, domainModel: MachineCredential::class)]
+#[AsMapper(resourceModel: MachineCredentialTableModel::class, domainModel: MachineCredential::class)]
 final class MachineCredentialMapper implements TableModelMapper
 {
     public function toDomain(object $tableModel): object
