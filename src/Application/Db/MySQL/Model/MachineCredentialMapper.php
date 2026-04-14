@@ -6,34 +6,34 @@ namespace Semitexa\Api\Application\Db\MySQL\Model;
 
 use Semitexa\Api\Domain\Model\MachineCredential;
 use Semitexa\Orm\Attribute\AsMapper;
-use Semitexa\Orm\Contract\TableModelMapper;
+use Semitexa\Orm\Contract\ResourceModelMapperInterface;
 
-#[AsMapper(resourceModel: MachineCredentialTableModel::class, domainModel: MachineCredential::class)]
-final class MachineCredentialMapper implements TableModelMapper
+#[AsMapper(resourceModel: MachineCredentialResourceModel::class, domainModel: MachineCredential::class)]
+final class MachineCredentialMapper implements ResourceModelMapperInterface
 {
-    public function toDomain(object $tableModel): object
+    public function toDomain(object $resourceModel): object
     {
-        $tableModel instanceof MachineCredentialTableModel || throw new \InvalidArgumentException('Unexpected table model.');
+        $resourceModel instanceof MachineCredentialResourceModel || throw new \InvalidArgumentException('Unexpected resource model.');
 
         return new MachineCredential(
-            id: $tableModel->id,
-            clientName: $tableModel->clientName,
-            secretHash: $tableModel->secretHash,
-            scopes: $tableModel->scopes,
-            tenantId: $tableModel->tenantId,
-            createdAt: $tableModel->createdAt,
-            lastUsedAt: $tableModel->lastUsedAt,
-            requestCount: $tableModel->requestCount,
-            rotatedAt: $tableModel->rotatedAt,
-            revokedAt: $tableModel->revokedAt,
+            id: $resourceModel->id,
+            clientName: $resourceModel->clientName,
+            secretHash: $resourceModel->secretHash,
+            scopes: $resourceModel->scopes,
+            tenantId: $resourceModel->tenantId,
+            createdAt: $resourceModel->createdAt,
+            lastUsedAt: $resourceModel->lastUsedAt,
+            requestCount: $resourceModel->requestCount,
+            rotatedAt: $resourceModel->rotatedAt,
+            revokedAt: $resourceModel->revokedAt,
         );
     }
 
-    public function toTableModel(object $domainModel): object
+    public function toSourceModel(object $domainModel): object
     {
         $domainModel instanceof MachineCredential || throw new \InvalidArgumentException('Unexpected domain model.');
 
-        return new MachineCredentialTableModel(
+        return new MachineCredentialResourceModel(
             id: $domainModel->getId(),
             clientName: $domainModel->getClientName(),
             secretHash: $domainModel->getSecretHash(),

@@ -12,7 +12,7 @@ use Semitexa\Orm\Metadata\HasColumnReferences;
 use Semitexa\Orm\Metadata\HasRelationReferences;
 
 #[FromTable(name: 'api_machine_credentials')]
-final readonly class MachineCredentialTableModel
+final readonly class MachineCredentialResourceModel
 {
     use HasColumnReferences;
     use HasRelationReferences;
