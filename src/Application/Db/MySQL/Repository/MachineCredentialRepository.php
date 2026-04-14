@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Semitexa\Api\Application\Db\MySQL\Repository;
 
-use Semitexa\Api\Application\Db\MySQL\Model\MachineCredentialTableModel;
+use Semitexa\Api\Application\Db\MySQL\Model\MachineCredentialResourceModel;
 use Semitexa\Api\Domain\Contract\MachineCredentialRepositoryInterface;
 use Semitexa\Api\Domain\Model\MachineCredential;
 use Semitexa\Core\Attribute\InjectAsReadonly;
@@ -31,9 +31,9 @@ final class MachineCredentialRepository implements MachineCredentialRepositoryIn
     {
         /** @var MachineCredential|null */
         return $this->repository()->query()
-            ->where(MachineCredentialTableModel::column('clientName'), \Semitexa\Orm\Query\Operator::Equals, $clientName)
-            ->whereNull(MachineCredentialTableModel::column('revokedAt'))
-            ->orderBy(MachineCredentialTableModel::column('createdAt'), Direction::Desc)
+            ->where(MachineCredentialResourceModel::column('clientName'), \Semitexa\Orm\Query\Operator::Equals, $clientName)
+            ->whereNull(MachineCredentialResourceModel::column('revokedAt'))
+            ->orderBy(MachineCredentialResourceModel::column('createdAt'), Direction::Desc)
             ->fetchOneAs(MachineCredential::class, $this->orm()->getMapperRegistry());
     }
 
@@ -50,11 +50,11 @@ final class MachineCredentialRepository implements MachineCredentialRepositoryIn
     public function findAllActive(?string $tenantId = null): array
     {
         $query = $this->repository()->query()
-            ->whereNull(MachineCredentialTableModel::column('revokedAt'))
-            ->orderBy(MachineCredentialTableModel::column('createdAt'), Direction::Desc);
+            ->whereNull(MachineCredentialResourceModel::column('revokedAt'))
+            ->orderBy(MachineCredentialResourceModel::column('createdAt'), Direction::Desc);
 
         if ($tenantId !== null) {
-            $query->where(MachineCredentialTableModel::column('tenantId'), \Semitexa\Orm\Query\Operator::Equals, $tenantId);
+            $query->where(MachineCredentialResourceModel::column('tenantId'), \Semitexa\Orm\Query\Operator::Equals, $tenantId);
         }
 
         /** @var list<MachineCredential> $credentials */
@@ -66,7 +66,7 @@ final class MachineCredentialRepository implements MachineCredentialRepositoryIn
     private function repository(): DomainRepository
     {
         return $this->repository ??= $this->orm()->repository(
-            MachineCredentialTableModel::class,
+            MachineCredentialResourceModel::class,
             MachineCredential::class,
         );
     }
