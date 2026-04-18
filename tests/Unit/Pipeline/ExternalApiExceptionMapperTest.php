@@ -19,6 +19,8 @@ use Semitexa\Core\Request;
 
 final class ExternalApiExceptionMapperTest extends TestCase
 {
+    private ?ContainerInterface $emptyContainer = null;
+
     public function testExternalApiRouteReturnsMachineJsonEnvelope(): void
     {
         $mapper = $this->makeMapper();
@@ -66,24 +68,25 @@ final class ExternalApiExceptionMapperTest extends TestCase
     public function testWithErrorRouteDispatcherForwardsIntoWrappedCoreMapper(): void
     {
         $mapper = $this->makeMapper();
+        $ref = new \ReflectionClass($mapper);
+        $prop = $ref->getProperty('coreMapper');
+        $prop->setAccessible(true);
+        $originalCoreMapper = $prop->getValue($mapper);
 
         $dispatcher = $this->makeDispatcher();
         $decorated = $mapper->withErrorRouteDispatcher($dispatcher);
+        $decoratedCoreMapper = $prop->getValue($decorated);
 
         // Must not mutate the original instance.
         self::assertNotSame($mapper, $decorated);
         self::assertInstanceOf(ExternalApiExceptionMapper::class, $decorated);
+        self::assertSame($originalCoreMapper, $prop->getValue($mapper));
+        self::assertNotSame($originalCoreMapper, $decoratedCoreMapper);
     }
 
     private function makeMapper(): ExternalApiExceptionMapper
     {
-        $mapper = new ExternalApiExceptionMapper();
-        $ref = new \ReflectionClass($mapper);
-        $prop = $ref->getProperty('coreMapper');
-        $prop->setAccessible(true);
-        $prop->setValue($mapper, new ExceptionMapper());
-
-        return $mapper;
+        return new ExternalApiExceptionMapper(new ExceptionMapper());
     }
 
     /**
@@ -109,28 +112,8 @@ final class ExternalApiExceptionMapperTest extends TestCase
     {
         return new ErrorRouteDispatcher(
             routeRegistry: new RouteRegistry(),
-            requestScopedContainer: new RequestScopedContainer(new class implements ContainerInterface {
-                public function get(string $id): mixed
-                {
-                    throw new class('no') extends \RuntimeException implements \Psr\Container\NotFoundExceptionInterface {};
-                }
-
-                public function has(string $id): bool
-                {
-                    return false;
-                }
-            }),
-            container: new class implements ContainerInterface {
-                public function get(string $id): mixed
-                {
-                    throw new class('no') extends \RuntimeException implements \Psr\Container\NotFoundExceptionInterface {};
-                }
-
-                public function has(string $id): bool
-                {
-                    return false;
-                }
-            },
+            requestScopedContainer: new RequestScopedContainer($this->makeEmptyContainer()),
+            container: $this->makeEmptyContainer(),
             authBootstrapper: null,
             environment: new Environment(
                 appEnv: 'prod',
@@ -160,5 +143,24 @@ final class ExternalApiExceptionMapperTest extends TestCase
                 throw new \RuntimeException('not used in this test');
             },
         );
+    }
+
+    private function makeEmptyContainer(): ContainerInterface
+    {
+        if ($this->emptyContainer instanceof ContainerInterface) {
+            return $this->emptyContainer;
+        }
+
+        return $this->emptyContainer = new class implements ContainerInterface {
+            public function get(string $id): mixed
+            {
+                throw new class('no') extends \RuntimeException implements \Psr\Container\NotFoundExceptionInterface {};
+            }
+
+            public function has(string $id): bool
+            {
+                return false;
+            }
+        };
     }
 }

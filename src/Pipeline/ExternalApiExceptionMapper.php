@@ -47,6 +47,11 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     #[InjectAsReadonly]
     protected ExceptionMapper $coreMapper;
 
+    public function __construct(?ExceptionMapper $coreMapper = null)
+    {
+        $this->coreMapper = $coreMapper ?? new ExceptionMapper();
+    }
+
     /**
      * Forward the request-scoped ErrorRouteDispatcher into the wrapped Core mapper
      * so the HTML fallback path stays functional for non-external routes and for
