@@ -8,6 +8,7 @@ use Semitexa\Core\Attribute\InjectAsReadonly;
 use Semitexa\Core\Attribute\SatisfiesServiceContract;
 use Semitexa\Core\Contract\ExceptionResponseMapperInterface;
 use Semitexa\Core\Discovery\ResolvedRouteMetadata;
+use Semitexa\Core\Error\ErrorRouteDispatcher;
 use Semitexa\Core\Exception\DomainException;
 use Semitexa\Core\Exception\RateLimitException;
 use Semitexa\Core\Pipeline\ExceptionMapper;
@@ -46,10 +47,20 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     #[InjectAsReadonly]
     protected ExceptionMapper $coreMapper;
 
-    public function withCoreMapper(ExceptionMapper $coreMapper): self
+    public function __construct(?ExceptionMapper $coreMapper = null)
+    {
+        $this->coreMapper = $coreMapper ?? new ExceptionMapper();
+    }
+
+    /**
+     * Forward the request-scoped ErrorRouteDispatcher into the wrapped Core mapper
+     * so the HTML fallback path stays functional for non-external routes and for
+     * unknown exceptions that escape to the Core mapper.
+     */
+    public function withErrorRouteDispatcher(ErrorRouteDispatcher $errorRouteDispatcher): static
     {
         $clone = clone $this;
-        $clone->coreMapper = $coreMapper;
+        $clone->coreMapper = $this->coreMapper->withErrorRouteDispatcher($errorRouteDispatcher);
 
         return $clone;
     }
