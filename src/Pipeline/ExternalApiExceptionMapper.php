@@ -47,9 +47,12 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     #[InjectAsReadonly]
     protected ExceptionMapper $coreMapper;
 
+    // @phpstan-ignore-next-line semitexa.injectionViaConstructor BC for direct and named construction.
     public function __construct(?ExceptionMapper $coreMapper = null)
     {
-        $this->coreMapper = $coreMapper !== null ? clone $coreMapper : new ExceptionMapper();
+        if ($coreMapper instanceof ExceptionMapper) {
+            $this->coreMapper = clone $coreMapper;
+        }
     }
 
     /**
@@ -60,7 +63,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     public function withErrorRouteDispatcher(ErrorRouteDispatcher $errorRouteDispatcher): static
     {
         $clone = clone $this;
-        $clone->coreMapper = $this->coreMapper->withErrorRouteDispatcher($errorRouteDispatcher);
+        $clone->coreMapper = $this->coreMapper()->withErrorRouteDispatcher($errorRouteDispatcher);
 
         return $clone;
     }
@@ -69,7 +72,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     {
         // Non-external routes keep Core default semantics.
         if (!$metadata->hasExtension('external_api')) {
-            return $this->coreMapper->map($e, $request, $metadata);
+            return $this->coreMapper()->map($e, $request, $metadata);
         }
 
         if ($e instanceof DomainException) {
@@ -77,7 +80,16 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
         }
 
         // Unknown exceptions fall through to Core mapper (generic 500 envelope).
-        return $this->coreMapper->map($e, $request, $metadata);
+        return $this->coreMapper()->map($e, $request, $metadata);
+    }
+
+    private function coreMapper(): ExceptionMapper
+    {
+        if (!isset($this->coreMapper)) {
+            $this->coreMapper = new ExceptionMapper();
+        }
+
+        return $this->coreMapper;
     }
 
     private function mapDomainException(
