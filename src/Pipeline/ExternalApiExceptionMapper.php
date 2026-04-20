@@ -45,14 +45,13 @@ use Semitexa\Core\HttpResponse;
 final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterface
 {
     #[InjectAsReadonly]
-    protected ExceptionMapper $coreMapper;
+    protected ?ExceptionMapper $coreMapper = null;
 
-    // @phpstan-ignore-next-line semitexa.injectionViaConstructor BC for direct and named construction.
-    public function __construct(?ExceptionMapper $coreMapper = null)
+    public function __construct()
     {
-        if ($coreMapper instanceof ExceptionMapper) {
-            $this->coreMapper = clone $coreMapper;
-        }
+        // Non-DI default so direct instantiation still has a usable mapper.
+        // Under container management, #[InjectAsReadonly] overwrites this.
+        $this->coreMapper = new ExceptionMapper();
     }
 
     /**
@@ -85,7 +84,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
 
     private function coreMapper(): ExceptionMapper
     {
-        if (!isset($this->coreMapper)) {
+        if ($this->coreMapper === null) {
             $this->coreMapper = new ExceptionMapper();
         }
 
