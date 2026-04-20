@@ -84,6 +84,19 @@ final class ExternalApiExceptionMapperTest extends TestCase
         self::assertNotSame($originalCoreMapper, $decoratedCoreMapper);
     }
 
+    public function testConstructorAcceptsCustomCoreMapperWithoutSharingInstance(): void
+    {
+        $coreMapper = new ExceptionMapper();
+        $mapper = new ExternalApiExceptionMapper($coreMapper);
+
+        $ref = new \ReflectionClass($mapper);
+        $prop = $ref->getProperty('coreMapper');
+        $prop->setAccessible(true);
+
+        self::assertNotSame($coreMapper, $prop->getValue($mapper));
+        self::assertInstanceOf(ExceptionMapper::class, $prop->getValue($mapper));
+    }
+
     private function makeMapper(): ExternalApiExceptionMapper
     {
         return new ExternalApiExceptionMapper();
