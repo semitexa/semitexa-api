@@ -47,9 +47,9 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     #[InjectAsReadonly]
     protected ExceptionMapper $coreMapper;
 
-    public function __construct()
+    // @phpstan-ignore-next-line semitexa.injectionViaConstructor BC for direct and named construction.
+    public function __construct(?ExceptionMapper $coreMapper = null)
     {
-        $coreMapper = func_num_args() > 0 ? func_get_arg(0) : null;
         if ($coreMapper instanceof ExceptionMapper) {
             $this->coreMapper = clone $coreMapper;
         }
