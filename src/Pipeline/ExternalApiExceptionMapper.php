@@ -49,8 +49,9 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
 
     public function __construct()
     {
-        // Non-DI default so direct instantiation still has a usable mapper.
-        // Under container management, #[InjectAsReadonly] overwrites this.
+        // This class is container-managed, so the constructor must stay parameterless
+        // for GraphBuilder bootstrap. The default keeps direct instantiation usable,
+        // while #[InjectAsReadonly] still replaces it under container management.
         $this->coreMapper = new ExceptionMapper();
     }
 
