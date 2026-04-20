@@ -86,7 +86,7 @@ final class ExternalApiExceptionMapperTest extends TestCase
 
     private function makeMapper(): ExternalApiExceptionMapper
     {
-        return new ExternalApiExceptionMapper(new ExceptionMapper());
+        return new ExternalApiExceptionMapper();
     }
 
     /**
