@@ -49,7 +49,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
 
     public function __construct(?ExceptionMapper $coreMapper = null)
     {
-        $this->coreMapper = $coreMapper ?? new ExceptionMapper();
+        $this->coreMapper = $coreMapper !== null ? clone $coreMapper : new ExceptionMapper();
     }
 
     /**
