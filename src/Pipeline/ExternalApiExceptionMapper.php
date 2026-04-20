@@ -49,9 +49,10 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
 
     public function __construct()
     {
-        // Non-DI default so unit tests can instantiate this class directly.
-        // Under container management, #[InjectAsReadonly] overwrites this.
-        $this->coreMapper = new ExceptionMapper();
+        $coreMapper = func_num_args() > 0 ? func_get_arg(0) : null;
+        if ($coreMapper instanceof ExceptionMapper) {
+            $this->coreMapper = clone $coreMapper;
+        }
     }
 
     /**
@@ -62,7 +63,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     public function withErrorRouteDispatcher(ErrorRouteDispatcher $errorRouteDispatcher): static
     {
         $clone = clone $this;
-        $clone->coreMapper = $this->coreMapper->withErrorRouteDispatcher($errorRouteDispatcher);
+        $clone->coreMapper = $this->coreMapper()->withErrorRouteDispatcher($errorRouteDispatcher);
 
         return $clone;
     }
@@ -71,7 +72,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     {
         // Non-external routes keep Core default semantics.
         if (!$metadata->hasExtension('external_api')) {
-            return $this->coreMapper->map($e, $request, $metadata);
+            return $this->coreMapper()->map($e, $request, $metadata);
         }
 
         if ($e instanceof DomainException) {
@@ -79,7 +80,16 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
         }
 
         // Unknown exceptions fall through to Core mapper (generic 500 envelope).
-        return $this->coreMapper->map($e, $request, $metadata);
+        return $this->coreMapper()->map($e, $request, $metadata);
+    }
+
+    private function coreMapper(): ExceptionMapper
+    {
+        if (!isset($this->coreMapper)) {
+            $this->coreMapper = new ExceptionMapper();
+        }
+
+        return $this->coreMapper;
     }
 
     private function mapDomainException(
