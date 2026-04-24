@@ -36,11 +36,11 @@ use Semitexa\Core\Request;
 final class MachineAuthHandler implements AuthHandlerInterface
 {
     #[InjectAsReadonly]
-    protected ?MachineCredentialRepositoryInterface $credentials = null;
+    protected MachineCredentialRepositoryInterface $credentials;
 
     public function handle(object $payload): ?AuthResult
     {
-        if ($this->credentials === null) {
+        if (!isset($this->credentials)) {
             // Repository not installed; skip gracefully.
             return null;
         }
