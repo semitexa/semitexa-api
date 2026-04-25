@@ -14,6 +14,29 @@ use Semitexa\Core\Request;
 
 final class MachineAuthHandlerTest extends TestCase
 {
+    public function testHandleSkipsWhenCredentialRepositoryIsNotInjected(): void
+    {
+        $handler = new MachineAuthHandler();
+
+        $payload = new class(new Request(
+            'GET',
+            '/api/platform/users',
+            ['Authorization' => 'Bearer cred-1:secret-123'],
+            [],
+            [],
+            [],
+            [],
+        )) {
+            public function __construct(private readonly Request $request) {}
+            public function getHttpRequest(): Request
+            {
+                return $this->request;
+            }
+        };
+
+        self::assertNull($handler->handle($payload));
+    }
+
     public function testHandleAuthenticatesValidBearerCredential(): void
     {
         $credential = new MachineCredential(

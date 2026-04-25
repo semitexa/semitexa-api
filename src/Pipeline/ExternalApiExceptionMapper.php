@@ -45,7 +45,7 @@ use Semitexa\Core\HttpResponse;
 final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterface
 {
     #[InjectAsReadonly]
-    protected ?ExceptionMapper $coreMapper = null;
+    protected ExceptionMapper $coreMapper;
 
     public function __construct()
     {
@@ -85,10 +85,6 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
 
     private function coreMapper(): ExceptionMapper
     {
-        if ($this->coreMapper === null) {
-            $this->coreMapper = new ExceptionMapper();
-        }
-
         return $this->coreMapper;
     }
 
