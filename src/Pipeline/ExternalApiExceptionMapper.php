@@ -85,10 +85,6 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
 
     private function coreMapper(): ExceptionMapper
     {
-        if (!isset($this->coreMapper)) {
-            $this->coreMapper = new ExceptionMapper();
-        }
-
         return $this->coreMapper;
     }
 
