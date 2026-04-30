@@ -6,7 +6,7 @@ namespace Semitexa\Api\Application\Db\MySQL\Model;
 
 use Semitexa\Api\Domain\Model\MachineCredential;
 use Semitexa\Orm\Attribute\AsMapper;
-use Semitexa\Orm\Contract\ResourceModelMapperInterface;
+use Semitexa\Orm\Domain\Contract\ResourceModelMapperInterface;
 
 #[AsMapper(resourceModel: MachineCredentialResourceModel::class, domainModel: MachineCredential::class)]
 final class MachineCredentialMapper implements ResourceModelMapperInterface

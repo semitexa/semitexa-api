@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Semitexa API — interactive showcase</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #fafafa;
+    --bg-card: #fff;
+    --bg-pre: #f3f3f3;
+    --bd: #e3e3e3;
+    --bd-strong: #d0d0d0;
+    --fg: #1a1a1a;
+    --fg-muted: #585858;
+    --accent: #0b6cff;
+    --accent-fg: #fff;
+    --ok: #1f7a3a;
+    --warn: #b15c00;
+    --err: #c41e1e;
+    --code-bg: #1f2530;
+    --code-fg: #f5f7fa;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e1116;
+      --bg-card: #161b22;
+      --bg-pre: #1e242c;
+      --bd: #2a313b;
+      --bd-strong: #3a424f;
+      --fg: #e6e8eb;
+      --fg-muted: #99a1ad;
+      --accent: #4d8fff;
+      --accent-fg: #fff;
+      --ok: #57d27c;
+      --warn: #f4a861;
+      --err: #ff7b7b;
+      --code-bg: #0a0d12;
+      --code-fg: #d8dee9;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 24px 96px; }
+  header.page {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--bd);
+  }
+  header.page h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.01em; }
+  header.page p { margin: 0 0 4px; color: var(--fg-muted); max-width: 70ch; }
+  header.page code { background: var(--bg-pre); padding: 1px 6px; border-radius: 4px; font-size: 13px; }
+  .toc {
+    margin: 16px 0 0;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--bd);
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .toc h2 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--fg-muted); }
+  .toc ol { margin: 0; padding-left: 20px; }
+  .toc a { color: var(--fg); text-decoration: none; }
+  .toc a:hover { color: var(--accent); }
+  .op {
+    background: var(--bg-card);
+    border: 1px solid var(--bd);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin: 18px 0;
+  }
+  .op > h3 { margin: 0 0 4px; font-size: 18px; letter-spacing: -0.01em; }
+  .op > .lede { margin: 0 0 14px; color: var(--fg-muted); font-size: 14px; }
+  .op .route {
+    display: flex; gap: 8px; align-items: center;
+    margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .method {
+    font: 600 12px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 6px 9px; border-radius: 4px;
+    background: var(--bg-pre); color: var(--fg);
+    text-transform: uppercase;
+    border: 1px solid var(--bd-strong);
+  }
+  .method.GET    { background: #e7f0ff; color: #1846b3; border-color: #b9d2ff; }
+  .method.POST   { background: #e6f6ec; color: #157a3c; border-color: #b9e6c9; }
+  .method.PUT    { background: #fef0d9; color: #8a4f00; border-color: #f5cf95; }
+  .method.PATCH  { background: #f4e5fb; color: #732a9e; border-color: #d8b8e8; }
+  .method.DELETE { background: #fde0e0; color: #a51d1d; border-color: #f3b8b8; }
+  @media (prefers-color-scheme: dark) {
+    .method.GET    { background: #142b4d; color: #b8d2ff; border-color: #2c4a78; }
+    .method.POST   { background: #133b22; color: #b3e8c5; border-color: #2c5e3e; }
+    .method.PUT    { background: #3b2810; color: #f1c280; border-color: #604226; }
+    .method.PATCH  { background: #36143f; color: #d8a4f0; border-color: #5a2e6a; }
+    .method.DELETE { background: #401616; color: #f1abab; border-color: #6c2c2c; }
+  }
+  .path {
+    font: 13px/1 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 6px 8px;
+    background: var(--bg-pre);
+    border: 1px solid var(--bd);
+    border-radius: 4px;
+    color: var(--fg);
+  }
+  .controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .controls label {
+    display: flex; flex-direction: column; gap: 4px;
+    font-size: 12px; color: var(--fg-muted);
+  }
+  .controls input,
+  .controls select,
+  .controls textarea {
+    font: 13px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    padding: 8px 10px;
+    background: var(--bg-pre);
+    border: 1px solid var(--bd-strong);
+    border-radius: 6px;
+    color: var(--fg);
+    width: 100%;
+  }
+  .controls textarea { min-height: 96px; resize: vertical; }
+  .runrow {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin: 6px 0 12px;
+  }
+  button.run {
+    background: var(--accent); color: var(--accent-fg);
+    border: 0; border-radius: 6px;
+    padding: 9px 16px;
+    font: 600 13px/1 -apple-system, system-ui;
+    cursor: pointer;
+  }
+  button.run:hover { filter: brightness(1.06); }
+  button.preset {
+    background: transparent;
+    border: 1px solid var(--bd-strong);
+    color: var(--fg);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font: 12px/1 -apple-system, system-ui;
+    cursor: pointer;
+  }
+  button.preset:hover { border-color: var(--accent); color: var(--accent); }
+  .response {
+    border-top: 1px dashed var(--bd);
+    padding-top: 12px;
+    margin-top: 4px;
+  }
+  .response .meta {
+    font: 12px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    margin-bottom: 6px;
+    display: flex; gap: 14px; flex-wrap: wrap;
+  }
+  .response .status { font-weight: 600; }
+  .response .status.s2 { color: var(--ok); }
+  .response .status.s4 { color: var(--warn); }
+  .response .status.s5 { color: var(--err); }
+  .response .duration { color: var(--fg-muted); }
+  .response pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow: auto;
+    font: 12.5px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    margin: 0;
+    max-height: 380px;
+  }
+  .response details summary {
+    color: var(--fg-muted); font-size: 12px; cursor: pointer;
+    margin-bottom: 6px;
+  }
+  .impl {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--fg-muted);
+  }
+  .impl code {
+    font-size: 11.5px;
+    padding: 1px 5px;
+    background: var(--bg-pre);
+    border-radius: 3px;
+  }
+  footer.page {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--bd);
+    color: var(--fg-muted);
+    font-size: 13px;
+  }
+  footer.page p { margin: 0 0 6px; }
+  .badge {
+    display: inline-block;
+    background: var(--bg-pre); color: var(--fg-muted);
+    border: 1px solid var(--bd);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font: 600 11px/1.4 ui-monospace, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <h1>Semitexa API — interactive showcase</h1>
+  <p>Six live endpoints demonstrating the <code>semitexa-api</code> request pipeline:
+     <code>#[ExternalApi]</code> Payload → Handler → Resource → JSON renderer →
+     <code>X-Api-Version</code> header decorator. Errors raised by handlers
+     (<code>NotFoundException</code>, <code>ValidationException</code>) are formatted by
+     <code>ExternalApiExceptionMapper</code> into a consistent machine envelope.</p>
+  <p style="margin-top:8px;">
+    Article data is held in an in-memory store inside the package
+    (<code>InMemoryArticleRepository</code>) and resets when the worker process restarts.
+    Every "Run" button below issues a real <code>fetch()</code> against this server.
+  </p>
+  <div class="toc">
+    <h2>Operations</h2>
+    <ol>
+      <li><a href="#op-list">GET /api/v1/demo/articles</a> — collection</li>
+      <li><a href="#op-get">GET /api/v1/demo/articles/{id}</a> — single resource</li>
+      <li><a href="#op-create">POST /api/v1/demo/articles</a> — create</li>
+      <li><a href="#op-replace">PUT /api/v1/demo/articles/{id}</a> — full replacement</li>
+      <li><a href="#op-patch">PATCH /api/v1/demo/articles/{id}</a> — partial update</li>
+      <li><a href="#op-delete">DELETE /api/v1/demo/articles/{id}</a> — idempotent delete</li>
+    </ol>
+  </div>
+</header>
+
+<!-- 1. LIST COLLECTION -->
+<section class="op" id="op-list" data-method="GET" data-template-path="/api/v1/demo/articles">
+  <h3>1. GET collection</h3>
+  <p class="lede">List all demo articles. Demonstrates query-string filtering and a
+     response envelope with both <code>data</code> (the collection) and
+     <code>meta</code> (counts).</p>
+  <div class="route">
+    <span class="method GET">GET</span>
+    <span class="path">/api/v1/demo/articles</span>
+    <span class="badge">v1</span>
+  </div>
+  <div class="controls">
+    <label>filter (query)
+      <select data-q="filter">
+        <option value="">— all —</option>
+        <option value="published">published</option>
+        <option value="drafts">drafts</option>
+        <option value="bogus">bogus (triggers 422)</option>
+      </select>
+    </label>
+  </div>
+  <div class="runrow"><button class="run">Run</button></div>
+  <div class="response" hidden></div>
+  <div class="impl">
+    Implementation:
+    <code>ListArticlesPayload</code> · <code>ListArticlesHandler</code> · <code>ArticleCollectionResource</code>
+  </div>
+</section>
+
+<!-- 2. GET ONE -->
+<section class="op" id="op-get" data-method="GET" data-template-path="/api/v1/demo/articles/{id}">
+  <h3>2. GET single resource</h3>
+  <p class="lede">Fetch one article by id. A missing id raises
+     <code>NotFoundException</code>, which the mapper renders as a 404 with the
+     machine envelope (<code>error.code = "not_found"</code>).</p>
+  <div class="route">
+    <span class="method GET">GET</span>
+    <span class="path">/api/v1/demo/articles/{id}</span>
+    <span class="badge">v1</span>
+  </div>
+  <div class="controls">
+    <label>id (path)
+      <input data-p="id" value="art_00001">
+    </label>
+  </div>
+  <div class="runrow">
+    <button class="run">Run</button>
+    <button class="preset" data-preset='{"p":{"id":"art_99999"}}'>Try non-existent id (404)</button>
+  </div>
+  <div class="response" hidden></div>
+  <div class="impl">
+    Implementation:
+    <code>GetArticlePayload</code> · <code>GetArticleHandler</code> · <code>ArticleResource</code>
+  </div>
+</section>
+
+<!-- 3. CREATE -->
+<section class="op" id="op-create" data-method="POST" data-template-path="/api/v1/demo/articles">
+  <h3>3. POST — create</h3>
+  <p class="lede">Create a new article. Empty <code>title</code> raises
+     <code>ValidationException</code> (422) with the field errors merged into
+     <code>error.context.errors</code>.</p>
+  <div class="route">
+    <span class="method POST">POST</span>
+    <span class="path">/api/v1/demo/articles</span>
+    <span class="badge">v1</span>
+    <span class="badge">application/json</span>
+  </div>
+  <div class="controls">
+    <label>request body (JSON)
+      <textarea data-body>{"title":"My new article","body":"Hello world","published":true}</textarea>
+    </label>
+  </div>
+  <div class="runrow">
+    <button class="run">Run</button>
+    <button class="preset" data-preset='{"body":{"title":"","body":"missing title","published":false}}'>Trigger validation (422)</button>
+  </div>
+  <div class="response" hidden></div>
+  <div class="impl">
+    Implementation:
+    <code>CreateArticlePayload</code> · <code>CreateArticleHandler</code> · <code>ArticleResource.created()</code>
+  </div>
+</section>
+
+<!-- 4. REPLACE -->
+<section class="op" id="op-replace" data-method="PUT" data-template-path="/api/v1/demo/articles/{id}">
+  <h3>4. PUT — full replacement</h3>
+  <p class="lede">Replace every mutable field. Missing <code>title</code> or
+     <code>body</code> is a validation error.</p>
+  <div class="route">
+    <span class="method PUT">PUT</span>
+    <span class="path">/api/v1/demo/articles/{id}</span>
+    <span class="badge">v1</span>
+    <span class="badge">application/json</span>
+  </div>
+  <div class="controls">
+    <label>id (path)
+      <input data-p="id" value="art_00001">
+    </label>
+    <label>request body (JSON)
+      <textarea data-body>{"title":"Welcome (replaced)","body":"Replaced body via PUT","published":true}</textarea>
+    </label>
+  </div>
+  <div class="runrow">
+    <button class="run">Run</button>
+    <button class="preset" data-preset='{"p":{"id":"art_00001"},"body":{"title":"","body":""}}'>Trigger validation (422)</button>
+    <button class="preset" data-preset='{"p":{"id":"art_99999"},"body":{"title":"x","body":"y","published":false}}'>Try unknown id (404)</button>
+  </div>
+  <div class="response" hidden></div>
+  <div class="impl">
+    Implementation:
+    <code>ReplaceArticlePayload</code> · <code>ReplaceArticleHandler</code> · <code>ArticleResource</code>
+  </div>
+</section>
+
+<!-- 5. PATCH -->
+<section class="op" id="op-patch" data-method="PATCH" data-template-path="/api/v1/demo/articles/{id}">
+  <h3>5. PATCH — partial update</h3>
+  <p class="lede">Send only the fields you want to change. Sending an empty body
+     raises a validation error so callers cannot accidentally PATCH nothing.</p>
+  <div class="route">
+    <span class="method PATCH">PATCH</span>
+    <span class="path">/api/v1/demo/articles/{id}</span>
+    <span class="badge">v1</span>
+    <span class="badge">application/json</span>
+  </div>
+  <div class="controls">
+    <label>id (path)
+      <input data-p="id" value="art_00002">
+    </label>
+    <label>request body (JSON)
+      <textarea data-body>{"published":false}</textarea>
+    </label>
+  </div>
+  <div class="runrow">
+    <button class="run">Run</button>
+    <button class="preset" data-preset='{"p":{"id":"art_00002"},"body":{}}'>Empty PATCH (422)</button>
+  </div>
+  <div class="response" hidden></div>
+  <div class="impl">
+    Implementation:
+    <code>PatchArticlePayload</code> · <code>PatchArticleHandler</code> · <code>ArticleResource</code>
+  </div>
+</section>
+
+<!-- 6. DELETE -->
+<section class="op" id="op-delete" data-method="DELETE" data-template-path="/api/v1/demo/articles/{id}">
+  <h3>6. DELETE — idempotent</h3>
+  <p class="lede">Delete by id. Returns <code>204 No Content</code> on success
+     <em>and</em> when the id was already missing — DELETE is idempotent.</p>
+  <div class="route">
+    <span class="method DELETE">DELETE</span>
+    <span class="path">/api/v1/demo/articles/{id}</span>
+    <span class="badge">v1</span>
+  </div>
+  <div class="controls">
+    <label>id (path)
+      <input data-p="id" value="art_00003">
+    </label>
+  </div>
+  <div class="runrow">
+    <button class="run">Run</button>
+    <button class="preset" data-preset='{"p":{"id":"art_does_not_exist"}}'>Run on missing id (still 204)</button>
+  </div>
+  <div class="response" hidden></div>
+  <div class="impl">
+    Implementation:
+    <code>DeleteArticlePayload</code> · <code>DeleteArticleHandler</code> · <code>ArticleDeletedResource</code>
+  </div>
+</section>
+
+<footer class="page">
+  <p><strong>What this page demonstrates:</strong> opt-in <code>#[ExternalApi]</code>
+     activation, the consistent machine error envelope
+     (<code>{"error":{"code","message","context","request_id","docs_url"}}</code>),
+     <code>X-Api-Version</code> response header, and idempotent versus non-idempotent
+     verb semantics.</p>
+  <p><strong>Out of scope (separate epic):</strong> content negotiation, JSON-LD,
+     HAL+JSON, and HTML representation switching are tracked as a follow-up — the
+     current package is JSON-only by design.</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $$(sel, root) { return Array.from((root || document).querySelectorAll(sel)); }
+
+  function buildUrl(section) {
+    var path = section.dataset.templatePath;
+    var pathInputs = $$('[data-p]', section);
+    pathInputs.forEach(function (el) {
+      var key = el.dataset.p;
+      path = path.replace('{' + key + '}', encodeURIComponent(el.value || ''));
+    });
+    var qs = [];
+    $$('[data-q]', section).forEach(function (el) {
+      if (el.value !== '') {
+        qs.push(encodeURIComponent(el.dataset.q) + '=' + encodeURIComponent(el.value));
+      }
+    });
+    return qs.length ? path + '?' + qs.join('&') : path;
+  }
+
+  function classifyStatus(code) {
+    if (code >= 200 && code < 300) return 's2';
+    if (code >= 400 && code < 500) return 's4';
+    if (code >= 500) return 's5';
+    return '';
+  }
+
+  function fmtBody(text, contentType) {
+    if (!text) return '(empty body)';
+    if ((contentType || '').indexOf('application/json') !== -1) {
+      try { return JSON.stringify(JSON.parse(text), null, 2); }
+      catch (e) { return text; }
+    }
+    return text;
+  }
+
+  function fmtHeaders(headers) {
+    var lines = [];
+    headers.forEach(function (v, k) { lines.push(k + ': ' + v); });
+    return lines.join('\n');
+  }
+
+  function renderResponse(section, status, statusText, headers, bodyText, durationMs, requestUrl, requestBody) {
+    var box = $('.response', section);
+    box.hidden = false;
+    var sCls = classifyStatus(status);
+    var contentType = headers.get('content-type') || '';
+    var bodyFmt = fmtBody(bodyText, contentType);
+
+    box.innerHTML = ''
+      + '<div class="meta">'
+      +   '<span class="status ' + sCls + '">' + status + ' ' + (statusText || '') + '</span>'
+      +   '<span class="duration">' + durationMs + ' ms</span>'
+      +   '<span class="duration">' + section.dataset.method + ' ' + requestUrl + '</span>'
+      + '</div>'
+      + '<details><summary>response headers</summary><pre>' + escapeHtml(fmtHeaders(headers)) + '</pre></details>'
+      + (requestBody ? '<details><summary>request body</summary><pre>' + escapeHtml(requestBody) + '</pre></details>' : '')
+      + '<pre>' + escapeHtml(bodyFmt) + '</pre>';
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  async function run(section) {
+    var method = section.dataset.method;
+    var url = buildUrl(section);
+    var bodyEl = $('[data-body]', section);
+    var bodyStr = bodyEl ? bodyEl.value : null;
+    var headers = { 'Accept': 'application/json' };
+    var init = { method: method, headers: headers };
+    if (bodyStr && method !== 'GET' && method !== 'DELETE') {
+      headers['Content-Type'] = 'application/json';
+      init.body = bodyStr;
+    }
+    var t0 = performance.now();
+    try {
+      var res = await fetch(url, init);
+      var text = await res.text();
+      var durationMs = (performance.now() - t0).toFixed(1);
+      renderResponse(section, res.status, res.statusText, res.headers, text, durationMs, url, init.body);
+    } catch (err) {
+      var durationMs = (performance.now() - t0).toFixed(1);
+      var box = $('.response', section);
+      box.hidden = false;
+      box.innerHTML = '<div class="meta"><span class="status s5">network error</span><span class="duration">' + durationMs + ' ms</span></div><pre>' + escapeHtml(String(err && err.message ? err.message : err)) + '</pre>';
+    }
+  }
+
+  function applyPreset(section, preset) {
+    if (preset.p) {
+      Object.keys(preset.p).forEach(function (k) {
+        var el = $('[data-p="' + k + '"]', section);
+        if (el) el.value = preset.p[k];
+      });
+    }
+    if (preset.q) {
+      Object.keys(preset.q).forEach(function (k) {
+        var el = $('[data-q="' + k + '"]', section);
+        if (el) el.value = preset.q[k];
+      });
+    }
+    if (preset.body !== undefined) {
+      var el = $('[data-body]', section);
+      if (el) el.value = JSON.stringify(preset.body);
+    }
+  }
+
+  $$('section.op').forEach(function (section) {
+    $('.run', section).addEventListener('click', function () { run(section); });
+    $$('button.preset', section).forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        try {
+          var preset = JSON.parse(btn.dataset.preset || '{}');
+          applyPreset(section, preset);
+        } catch (e) { /* ignore */ }
+        run(section);
+      });
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
