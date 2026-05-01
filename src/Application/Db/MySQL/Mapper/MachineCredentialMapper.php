@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Semitexa\Api\Application\Db\MySQL\Model;
+namespace Semitexa\Api\Application\Db\MySQL\Mapper;
 
+use Semitexa\Api\Application\Db\MySQL\Model\MachineCredentialResourceModel;
 use Semitexa\Api\Domain\Model\MachineCredential;
 use Semitexa\Orm\Attribute\AsMapper;
 use Semitexa\Orm\Domain\Contract\ResourceModelMapperInterface;
