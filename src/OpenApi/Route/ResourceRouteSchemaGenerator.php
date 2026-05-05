@@ -12,7 +12,7 @@ use Semitexa\Api\Attribute\ProducesResourceObject;
 use Semitexa\Core\Resource\Pagination\CollectionPageRequest;
 use Semitexa\Api\OpenApi\Schema\IncludeTokenCollector;
 use Semitexa\Api\OpenApi\Schema\ResourceSchemaGenerator;
-use Semitexa\Core\Attribute\AsPayload;
+use Semitexa\Core\Attribute\AbstractPayloadRoute;
 use Semitexa\Core\Attribute\AsService;
 use Semitexa\Core\Attribute\InjectAsReadonly;
 use Semitexa\Core\Discovery\ClassDiscovery;
@@ -97,11 +97,11 @@ final class ResourceRouteSchemaGenerator
     public function describeRoute(string $payloadClass): ?array
     {
         $payloadRef = new ReflectionClass($payloadClass);
-        $payloadAttrs = $payloadRef->getAttributes(AsPayload::class);
+        $payloadAttrs = $payloadRef->getAttributes(AbstractPayloadRoute::class, \ReflectionAttribute::IS_INSTANCEOF);
         if ($payloadAttrs === []) {
             return null;
         }
-        /** @var AsPayload $asPayload */
+        /** @var AbstractPayloadRoute $asPayload */
         $asPayload = $payloadAttrs[0]->newInstance();
 
         if (!$this->isJsonProfile($asPayload->renderProfile)) {
@@ -308,7 +308,7 @@ final class ResourceRouteSchemaGenerator
     /** @return list<class-string> */
     public function discoverPayloadClasses(): array
     {
-        $classes = $this->classDiscovery->findClassesWithAttribute(AsPayload::class);
+        $classes = $this->classDiscovery->findClassesWithAttributeInstanceof(AbstractPayloadRoute::class);
         sort($classes);
         /** @var list<class-string> $classes */
         return $classes;

@@ -6,7 +6,7 @@ namespace Semitexa\Api\Tests\Unit\OpenApi;
 
 use Semitexa\Api\Tests\Fixtures\Customer\CustomerJsonLdResponse;
 use Semitexa\Api\Tests\Fixtures\Customer\CustomerJsonResponse;
-use Semitexa\Core\Attribute\AsPayload;
+use Semitexa\Authorization\Attribute\AsProtectedPayload;
 use Semitexa\Core\Resource\IncludeSet;
 use Semitexa\Core\Resource\RenderProfile;
 use Semitexa\Core\Resource\SupportsResourceIncludes;
@@ -17,7 +17,7 @@ use Semitexa\Core\Resource\SupportsResourceIncludes;
  * `application/graphql-response+json` for routes that don't declare the
  * GraphQL profile.
  */
-#[AsPayload(
+#[AsProtectedPayload(
     path: '/phase5b/json-only/{id}',
     methods: ['GET'],
     responseWith: CustomerJsonResponse::class,

@@ -7,9 +7,10 @@ namespace Semitexa\Api\Tests\Unit\OpenApi;
 use Semitexa\Core\Discovery\ClassDiscovery;
 
 /**
- * Stub ClassDiscovery for OpenAPI generator tests. Returns a fixed list when
- * asked for #[AsPayload] (or any other attribute) classes, so the generator
- * can be tested in isolation without booting the live composer classmap.
+ * Stub ClassDiscovery for OpenAPI generator tests. Returns a fixed list of
+ * payload classes for both the exact-attribute and IS_INSTANCEOF discovery
+ * paths so the generator can be tested in isolation without booting the
+ * live composer classmap.
  */
 final class InMemoryDiscovery extends ClassDiscovery
 {
@@ -19,6 +20,11 @@ final class InMemoryDiscovery extends ClassDiscovery
     }
 
     public function findClassesWithAttribute(string $attributeClass): array
+    {
+        return $this->classes;
+    }
+
+    public function findClassesWithAttributeInstanceof(string $attributeParentClass): array
     {
         return $this->classes;
     }

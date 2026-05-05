@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Semitexa\Api\Tests\Fixtures\Customer;
 
-use Semitexa\Core\Attribute\AsPayload;
+use Semitexa\Authorization\Attribute\AsProtectedPayload;
 use Semitexa\Core\Resource\IncludeSet;
 use Semitexa\Core\Resource\RenderProfile;
 use Semitexa\Core\Resource\SupportsResourceIncludes;
@@ -15,7 +15,7 @@ use Semitexa\Core\Resource\SupportsResourceIncludes;
  * exercise singular routes that declare Json + JsonLd + GraphQL
  * render profiles.
  */
-#[AsPayload(
+#[AsProtectedPayload(
     path: '/customers/{id}',
     methods: ['GET', 'POST'],
     responseWith: CustomerJsonResponse::class,

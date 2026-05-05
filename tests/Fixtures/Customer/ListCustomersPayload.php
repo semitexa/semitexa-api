@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Semitexa\Api\Tests\Fixtures\Customer;
 
-use Semitexa\Core\Attribute\AsPayload;
+use Semitexa\Authorization\Attribute\AsProtectedPayload;
 use Semitexa\Core\Resource\IncludeSet;
 use Semitexa\Core\Resource\RenderProfile;
 use Semitexa\Core\Resource\SupportsResourceIncludes;
@@ -14,7 +14,7 @@ use Semitexa\Core\Resource\SupportsResourceIncludes;
  * OpenAPI generator tests to exercise collection routes that declare
  * pagination, sort, and filter parameters.
  */
-#[AsPayload(
+#[AsProtectedPayload(
     path: '/customers',
     methods: ['GET'],
     responseWith: CustomerCollectionJsonResponse::class,

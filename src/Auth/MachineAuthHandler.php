@@ -69,7 +69,9 @@ final class MachineAuthHandler implements AuthHandlerInterface
         $credential = $credential->recordUsage(new \DateTimeImmutable());
         $this->credentials->update($credential);
 
-        return AuthResult::success(new MachinePrincipal($credential));
+        // Service-domain success — the runtime auth gate uses the subject type
+        // to refuse service tokens on user-protected routes and vice versa.
+        return AuthResult::successAsService(new MachinePrincipal($credential));
     }
 
     /**
@@ -84,8 +86,13 @@ final class MachineAuthHandler implements AuthHandlerInterface
     private function extractToken(object $payload): ?array
     {
         // AuthBootstrapper passes the payload object, not the raw Request.
-        // Access the request via setHttpRequest convention or fall back to header check.
+        // Read the active Request from CurrentRequestStore (canonical
+        // mechanism); fall back to setHttpRequest() for legacy payloads
+        // that opt into the per-payload convention.
         $request = method_exists($payload, 'getHttpRequest') ? $payload->getHttpRequest() : null;
+        if (!$request instanceof Request) {
+            $request = \Semitexa\Core\Lifecycle\CurrentRequestStore::get();
+        }
         if (!$request instanceof Request) {
             return null;
         }

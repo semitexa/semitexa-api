@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Semitexa\Api\Tests\Unit\OpenApi;
 
 use Semitexa\Api\Tests\Fixtures\Customer\CustomerJsonResponse;
-use Semitexa\Core\Attribute\AsPayload;
+use Semitexa\Authorization\Attribute\AsProtectedPayload;
 use Semitexa\Core\Resource\RenderProfile;
 
 /**
@@ -13,7 +13,7 @@ use Semitexa\Core\Resource\RenderProfile;
  * implement `SupportsResourceIncludes`. Used to prove the OpenAPI generator
  * omits the `include=` parameter when runtime would ignore the query string.
  */
-#[AsPayload(
+#[AsProtectedPayload(
     path: '/phase3c/no-includes/{id}',
     methods: ['GET'],
     responseWith: CustomerJsonResponse::class,
