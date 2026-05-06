@@ -14,9 +14,9 @@ use RecursiveIteratorIterator;
  *
  * Package tests must test the package. Application-module / demo
  * behaviour (Article CRUD, Showcase pages, route demos) belongs to the
- * owning app module under `src/modules/...` and is tested at the
- * repo-root `tests/Playground/...` location, not inside this package's
- * tests directory.
+ * owning app module under `src/modules/...` and is tested at
+ * `src/modules/Playground/tests/...`, not inside this
+ * package's tests directory.
  *
  * This guard is narrow on purpose. It pins the boundary so the previous
  * drift — a complete REST Article CRUD + Showcase fixture stack living
@@ -38,12 +38,12 @@ final class PackageStructureTest extends TestCase
         self::assertDirectoryDoesNotExist(
             $packageTests . '/Fixtures/Demo',
             'packages/semitexa-api/tests/Fixtures/ must not contain a Demo/ subtree;'
-            . ' demo CRUD/showcase fixtures belong under tests/Playground/RestApi/Fixtures/.'
+            . ' demo CRUD/showcase fixtures belong under src/modules/Playground/tests/RestApi/Fixtures/.'
         );
         self::assertDirectoryDoesNotExist(
             $packageTests . '/Demo',
             'packages/semitexa-api/tests/ must not contain a Demo/ subtree;'
-            . ' demo-flavoured tests belong under tests/Playground/RestApi/.'
+            . ' demo-flavoured tests belong under src/modules/Playground/tests/RestApi/.'
         );
     }
 
@@ -72,7 +72,7 @@ final class PackageStructureTest extends TestCase
             [],
             $offenders,
             "Files under packages/semitexa-api/tests/ must declare a Semitexa\\Api\\Tests\\ namespace.\n"
-            . "Host-app tests belong at the repo-root tests/ directory.\n"
+            . "Local module tests belong under src/modules/<Module>/tests/. Cross-cutting integration tests belong in the package whose code they verify.\n"
             . implode("\n", $offenders),
         );
     }
