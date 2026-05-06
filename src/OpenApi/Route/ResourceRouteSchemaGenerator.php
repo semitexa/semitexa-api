@@ -77,6 +77,7 @@ final class ResourceRouteSchemaGenerator
             foreach ($route['methods'] as $method) {
                 $methodKey = strtolower($method);
                 $methodOp  = $route['operation'];
+                $methodOp['operationId'] = $this->operationId($payloadClass, $method);
                 $bodies    = $route['requestBodiesByMethod'] ?? [];
                 if (isset($bodies[$methodKey])) {
                     $methodOp['requestBody'] = $bodies[$methodKey];
@@ -274,7 +275,7 @@ final class ResourceRouteSchemaGenerator
         }
 
         $operation = [
-            'operationId' => $this->operationId($payloadClass),
+            'operationId' => $this->operationId($payloadClass, $methods[0] ?? 'GET'),
             'parameters'  => $parameters,
             'responses'   => [
                 '200' => [
@@ -423,9 +424,14 @@ final class ResourceRouteSchemaGenerator
             'in'          => 'query',
             'required'    => false,
             'description' => 'Comma-separated list of relations to include in the response. Each value must be one of the listed enum tokens; tokens may be combined (e.g. "addresses,profile"). Unknown or non-expandable tokens return HTTP 400.',
+            'style'       => 'form',
+            'explode'     => false,
             'schema'      => [
-                'type' => 'string',
-                'enum' => $tokens,
+                'type'  => 'array',
+                'items' => [
+                    'type' => 'string',
+                    'enum' => $tokens,
+                ],
             ],
         ];
     }
@@ -672,7 +678,7 @@ final class ResourceRouteSchemaGenerator
                 . '(Phase 5c) and the `?include=` parameter. The JSON envelope '
                 . 'follows the GraphQL over HTTP draft; raw `application/graphql` '
                 . 'bodies carry the query string directly.',
-            'required'    => true,
+            'required'    => false,
             'content'     => [
                 'application/json' => [
                     'schema' => [
@@ -777,10 +783,17 @@ final class ResourceRouteSchemaGenerator
         return false;
     }
 
-    private function operationId(string $payloadClass): string
+    private function operationId(string $payloadClass, string $method): string
     {
         $parts = explode('\\', $payloadClass);
         $base  = $parts[count($parts) - 1];
-        return preg_replace('/Payload$/', '', $base) ?? $base;
+        $id    = preg_replace('/Payload$/', '', $base) ?? $base;
+
+        $prefix = ucfirst(strtolower($method));
+        if (str_starts_with($id, $prefix)) {
+            return $id;
+        }
+
+        return $prefix . $id;
     }
 }

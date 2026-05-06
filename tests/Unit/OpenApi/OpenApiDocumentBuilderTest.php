@@ -45,9 +45,9 @@ final class OpenApiDocumentBuilderTest extends TestCase
         $expected = file_get_contents(__DIR__ . '/golden/customer.openapi.json');
         self::assertNotFalse($expected);
 
-        $actual = $this->builder()->toJson('Semitexa Resource API', '0.0.0');
+        $actual   = $this->builder()->toJson('Customer API', '1.0.0');
 
-        self::assertSame($expected, $actual, 'OpenAPI dump must match the golden file. Regenerate via: bin/semitexa openapi:dump --output=packages/semitexa-api/tests/Unit/OpenApi/golden/customer.openapi.json');
+        self::assertSame($expected, $actual, "OpenAPI dump must match the golden file. Regenerate via: bin/semitexa openapi:dump --output=packages/semitexa-api/tests/Unit/OpenApi/golden/customer.openapi.json");
     }
 
     #[Test]

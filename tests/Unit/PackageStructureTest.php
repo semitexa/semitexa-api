@@ -59,6 +59,7 @@ final class PackageStructureTest extends TestCase
         foreach ($this->iteratePhp($packageTests) as $file) {
             $contents = (string) file_get_contents($file);
             if (preg_match('/^\s*namespace\s+(?P<ns>[^;]+);/m', $contents, $m) !== 1) {
+                $offenders[] = $file . ' (missing namespace)';
                 continue;
             }
             $namespace = trim($m['ns']);

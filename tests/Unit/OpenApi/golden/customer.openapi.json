@@ -1,26 +1,31 @@
 {
     "openapi": "3.1.0",
     "info": {
-        "title": "Semitexa Resource API",
-        "version": "0.0.0"
+        "title": "Customer API",
+        "version": "1.0.0"
     },
     "paths": {
         "/customers": {
             "get": {
-                "operationId": "ListCustomers",
+                "operationId": "GetListCustomers",
                 "parameters": [
                     {
                         "name": "include",
                         "in": "query",
                         "required": false,
                         "description": "Comma-separated list of relations to include in the response. Each value must be one of the listed enum tokens; tokens may be combined (e.g. \"addresses,profile\"). Unknown or non-expandable tokens return HTTP 400.",
+                        "style": "form",
+                        "explode": false,
                         "schema": {
-                            "type": "string",
-                            "enum": [
-                                "addresses",
-                                "profile",
-                                "profile.preferences"
-                            ]
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "addresses",
+                                    "profile",
+                                    "profile.preferences"
+                                ]
+                            }
                         }
                     },
                     {
@@ -194,13 +199,18 @@
                         "in": "query",
                         "required": false,
                         "description": "Comma-separated list of relations to include in the response. Each value must be one of the listed enum tokens; tokens may be combined (e.g. \"addresses,profile\"). Unknown or non-expandable tokens return HTTP 400.",
+                        "style": "form",
+                        "explode": false,
                         "schema": {
-                            "type": "string",
-                            "enum": [
-                                "addresses",
-                                "profile",
-                                "profile.preferences"
-                            ]
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "addresses",
+                                    "profile",
+                                    "profile.preferences"
+                                ]
+                            }
                         }
                     },
                     {
@@ -256,7 +266,7 @@
                 }
             },
             "post": {
-                "operationId": "GetCustomer",
+                "operationId": "PostGetCustomer",
                 "parameters": [
                     {
                         "name": "id",
@@ -271,13 +281,18 @@
                         "in": "query",
                         "required": false,
                         "description": "Comma-separated list of relations to include in the response. Each value must be one of the listed enum tokens; tokens may be combined (e.g. \"addresses,profile\"). Unknown or non-expandable tokens return HTTP 400.",
+                        "style": "form",
+                        "explode": false,
                         "schema": {
-                            "type": "string",
-                            "enum": [
-                                "addresses",
-                                "profile",
-                                "profile.preferences"
-                            ]
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "addresses",
+                                    "profile",
+                                    "profile.preferences"
+                                ]
+                            }
                         }
                     },
                     {
@@ -333,7 +348,7 @@
                 },
                 "requestBody": {
                     "description": "GraphQL request body for CustomerResource. Body query takes precedence over the `?query=` query parameter (Phase 5c) and the `?include=` parameter. The JSON envelope follows the GraphQL over HTTP draft; raw `application/graphql` bodies carry the query string directly.",
-                    "required": true,
+                    "required": false,
                     "content": {
                         "application/json": {
                             "schema": {

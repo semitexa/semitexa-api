@@ -198,7 +198,7 @@ final class ResourceRouteSchemaGeneratorTest extends TestCase
         self::assertArrayHasKey('requestBody', $route['post']);
 
         $body = $route['post']['requestBody'];
-        self::assertTrue($body['required']);
+        self::assertFalse($body['required']);
         self::assertStringContainsString('GraphQL request body', $body['description']);
         self::assertStringContainsString('precedence', $body['description']);
 
@@ -372,14 +372,17 @@ final class ResourceRouteSchemaGeneratorTest extends TestCase
         self::assertNotNull($include, 'include= query parameter must be emitted for SupportsResourceIncludes payloads.');
         self::assertSame('query', $include['in']);
         self::assertFalse($include['required']);
-        self::assertSame('string', $include['schema']['type']);
+        self::assertSame('array', $include['schema']['type']);
+        self::assertSame('form',  $include['style']);
+        self::assertFalse($include['explode']);
+
         // Phase 6g: the fixture `ProfileResource` gained a resolver-backed
         // `preferences` relation. The metadata-driven include-enum
         // generator naturally emits the dotted token `profile.preferences`
         // alongside the top-level tokens; output stays alphabetically sorted.
         self::assertSame(
             ['addresses', 'profile', 'profile.preferences'],
-            $include['schema']['enum'],
+            $include['schema']['items']['enum'],
             'Tokens must be alphabetically sorted.',
         );
         self::assertStringContainsString('Comma-separated', $include['description']);
