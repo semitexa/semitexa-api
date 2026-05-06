@@ -786,8 +786,25 @@ final class ResourceRouteSchemaGenerator
     private function operationId(string $payloadClass, string $method): string
     {
         $parts = explode('\\', $payloadClass);
-        $base  = $parts[count($parts) - 1];
-        $id    = preg_replace('/Payload$/', '', $base) ?? $base;
+
+        // Find the 'Request' or 'Payload' marker to derive a feature-prefixed ID.
+        // Paths are typically: ...\Application\Payload\Request\{Feature}\{Name}Payload
+        $startIndex = -1;
+        foreach ($parts as $i => $p) {
+            if ($p === 'Request' || $p === 'Payload') {
+                $startIndex = $i;
+                break;
+            }
+        }
+
+        if ($startIndex === -1 || $startIndex >= count($parts) - 1) {
+            $base = $parts[count($parts) - 1];
+        } else {
+            $relevant = array_slice($parts, $startIndex + 1);
+            $base = implode('', $relevant);
+        }
+
+        $id = preg_replace('/Payload$/', '', $base) ?? $base;
 
         $prefix = ucfirst(strtolower($method));
         if (str_starts_with($id, $prefix)) {
