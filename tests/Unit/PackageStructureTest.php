@@ -63,7 +63,7 @@ final class PackageStructureTest extends TestCase
                 continue;
             }
             $namespace = trim($m['ns']);
-            if (!str_starts_with($namespace, 'Semitexa\\Api\\Tests')) {
+            if ($namespace !== 'Semitexa\\Api\\Tests' && !str_starts_with($namespace, 'Semitexa\\Api\\Tests\\')) {
                 $offenders[] = $file . ' (namespace ' . $namespace . ')';
             }
         }
