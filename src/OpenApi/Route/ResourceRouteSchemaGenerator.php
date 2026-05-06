@@ -193,17 +193,42 @@ final class ResourceRouteSchemaGenerator
         }
 
         $paginationSchema = [
-            'type'       => 'object',
-            'required'   => ['page', 'perPage', 'total', 'pageCount', 'hasNext', 'hasPrevious'],
-            'properties' => [
-                'page'        => ['type' => 'integer', 'minimum' => 1],
-                'perPage'     => ['type' => 'integer', 'minimum' => 1],
-                'total'       => ['type' => 'integer', 'minimum' => 0],
-                'pageCount'   => ['type' => 'integer', 'minimum' => 0],
-                'hasNext'     => ['type' => 'boolean'],
-                'hasPrevious' => ['type' => 'boolean'],
+            'oneOf' => [
+                [
+                    'type'       => 'object',
+                    'required'   => ['page', 'perPage', 'total', 'pageCount', 'hasNext', 'hasPrevious'],
+                    'properties' => [
+                        'page'        => ['type' => 'integer', 'minimum' => 1],
+                        'perPage'     => ['type' => 'integer', 'minimum' => 1],
+                        'total'       => ['type' => 'integer', 'minimum' => 0],
+                        'pageCount'   => ['type' => 'integer', 'minimum' => 0],
+                        'hasNext'     => ['type' => 'boolean'],
+                        'hasPrevious' => ['type' => 'boolean'],
+                    ],
+                    'additionalProperties' => false,
+                    'description'          => 'Page-based windowing metadata.',
+                ],
+                [
+                    'type'       => 'object',
+                    'required'   => ['mode', 'perPage', 'total', 'hasNext', 'nextCursor', 'cursor'],
+                    'properties' => [
+                        'mode'       => ['type' => 'string', 'enum' => ['cursor']],
+                        'perPage'    => ['type' => 'integer', 'minimum' => 1],
+                        'total'      => ['type' => 'integer', 'minimum' => 0],
+                        'hasNext'    => ['type' => 'boolean'],
+                        'nextCursor' => [
+                            'type'        => 'string',
+                            'description' => 'Opaque token for the next page of results. Replay this value in the next ?cursor= parameter.',
+                        ],
+                        'cursor'     => [
+                            'type'        => 'string',
+                            'description' => 'The opaque token that produced this result set.',
+                        ],
+                    ],
+                    'additionalProperties' => false,
+                    'description'          => 'Cursor-based windowing metadata.',
+                ],
             ],
-            'additionalProperties' => false,
         ];
 
         $jsonSchema = $isCollection

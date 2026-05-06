@@ -477,9 +477,15 @@ final class ResourceRouteSchemaGeneratorTest extends TestCase
             ['pagination'],
             $jsonSchema['properties']['meta']['required'],
         );
+        $pagination = $jsonSchema['properties']['meta']['properties']['pagination'];
+        self::assertArrayHasKey('oneOf', $pagination);
         self::assertSame(
             ['page', 'perPage', 'total', 'pageCount', 'hasNext', 'hasPrevious'],
-            $jsonSchema['properties']['meta']['properties']['pagination']['required'],
+            $pagination['oneOf'][0]['required'],
+        );
+        self::assertSame(
+            ['mode', 'perPage', 'total', 'hasNext', 'nextCursor', 'cursor'],
+            $pagination['oneOf'][1]['required'],
         );
     }
 

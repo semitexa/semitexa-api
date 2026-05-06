@@ -195,10 +195,13 @@ final class ResourceSchemaGenerator
         // scalar for everything else. Phase 3 only cares about the wire
         // contract, not strict scalar types — those land in Phase 4 with
         // a richer scalar metadata pass.
+        $type = ['type' => 'string'];
+
         if ($field->name === $parent->idField) {
-            return ['type' => 'string'];
+            return $type;
         }
-        return ['type' => 'string'];
+
+        return $field->nullable ? ['oneOf' => [$type, ['type' => 'null']]] : $type;
     }
 
     /** @return array<string, mixed> */
