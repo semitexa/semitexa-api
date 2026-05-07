@@ -17,13 +17,48 @@ use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
 use Semitexa\Core\Resource\ResourceObjectInterface;
 use Semitexa\Core\Resource\ResourceRef;
 use Semitexa\Core\Resource\ResourceRefList;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\AddressResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\BotResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\CommentResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\CustomerResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\PreferencesResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\ProfileResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\UserResource;
+use Semitexa\Api\Tests\Fixtures\Customer\AddressResource as FixtureAddressResource;
+use Semitexa\Api\Tests\Fixtures\Customer\CustomerResource as FixtureCustomerResource;
+use Semitexa\Api\Tests\Fixtures\Customer\ProfilePreferencesResource as FixturePreferencesResource;
+use Semitexa\Api\Tests\Fixtures\Customer\ProfileResource as FixtureProfileResource;
+
+#[ResourceObject(type: 'phase3c.user')]
+final readonly class UserResourceFixture3c implements ResourceObjectInterface
+{
+    public function __construct(
+        #[ResourceId]
+        public string $id,
+        #[ResourceField]
+        public string $name,
+    ) {
+    }
+}
+
+#[ResourceObject(type: 'phase3c.bot')]
+final readonly class BotResourceFixture3c implements ResourceObjectInterface
+{
+    public function __construct(
+        #[ResourceId]
+        public string $id,
+        #[ResourceField]
+        public string $label,
+    ) {
+    }
+}
+
+#[ResourceObject(type: 'phase3c.comment')]
+final readonly class CommentResourceFixture3c implements ResourceObjectInterface
+{
+    public function __construct(
+        #[ResourceId]
+        public string $id,
+        #[ResourceRefAttr(target: [UserResourceFixture3c::class, BotResourceFixture3c::class], include: 'author', href: '/comments/{id}/author')]
+        public ?ResourceRef $author = null,
+        #[ResourceRefListAttr(target: [UserResourceFixture3c::class, BotResourceFixture3c::class], expandable: true, include: 'mentions', href: '/comments/{id}/mentions')]
+        public ResourceRefList $mentions = new ResourceRefList(),
+    ) {
+    }
+}
 
 #[ResourceObject(type: 'phase3c.country')]
 final readonly class CountryResourceFixture3c implements ResourceObjectInterface
@@ -84,7 +119,7 @@ final readonly class NonExpandableRelationResourceFixture3c implements ResourceO
         #[ResourceId]
         public string $id,
         // expandable: false (default) — not embeddable via ?include=, so no token.
-        #[ResourceRefAttr(target: ProfileResource::class, include: 'profile', href: '/x/{id}/profile')]
+        #[ResourceRefAttr(target: FixtureProfileResource::class, include: 'profile', href: '/x/{id}/profile')]
         public ?ResourceRef $profile = null,
     ) {
     }
@@ -96,10 +131,10 @@ final class IncludeTokenCollectorTest extends TestCase
     {
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(AddressResource::class));
-        $registry->register($extractor->extract(PreferencesResource::class));
-        $registry->register($extractor->extract(ProfileResource::class));
-        $registry->register($extractor->extract(CustomerResource::class));
+        $registry->register($extractor->extract(FixtureAddressResource::class));
+        $registry->register($extractor->extract(FixturePreferencesResource::class));
+        $registry->register($extractor->extract(FixtureProfileResource::class));
+        $registry->register($extractor->extract(FixtureCustomerResource::class));
         return $registry;
     }
 
@@ -135,7 +170,7 @@ final class IncludeTokenCollectorTest extends TestCase
     {
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(ProfileResource::class));
+        $registry->register($extractor->extract(FixtureProfileResource::class));
         $registry->register($extractor->extract(NonExpandableRelationResourceFixture3c::class));
 
         $c = IncludeTokenCollector::forTesting($registry);
@@ -174,12 +209,12 @@ final class IncludeTokenCollectorTest extends TestCase
     {
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(UserResource::class));
-        $registry->register($extractor->extract(BotResource::class));
-        $registry->register($extractor->extract(CommentResource::class));
+        $registry->register($extractor->extract(UserResourceFixture3c::class));
+        $registry->register($extractor->extract(BotResourceFixture3c::class));
+        $registry->register($extractor->extract(CommentResourceFixture3c::class));
 
         $c = IncludeTokenCollector::forTesting($registry);
-        $tokens = $c->collect($registry->require(CommentResource::class));
+        $tokens = $c->collect($registry->require(CommentResourceFixture3c::class));
 
         // CommentResource: author (NOT expandable in the fixture) → skipped.
         // CommentResource: mentions (expandable: true) → token "mentions".

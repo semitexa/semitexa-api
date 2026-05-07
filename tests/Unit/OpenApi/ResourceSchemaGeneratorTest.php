@@ -7,15 +7,58 @@ namespace Semitexa\Api\Tests\Unit\OpenApi;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Semitexa\Api\OpenApi\Schema\ResourceSchemaGenerator;
+use Semitexa\Api\Tests\Fixtures\Customer\AddressResource as FixtureAddressResource;
+use Semitexa\Api\Tests\Fixtures\Customer\CustomerResource as FixtureCustomerResource;
+use Semitexa\Api\Tests\Fixtures\Customer\ProfilePreferencesResource as FixturePreferencesResource;
+use Semitexa\Api\Tests\Fixtures\Customer\ProfileResource as FixtureProfileResource;
+use Semitexa\Core\Resource\Attribute\ResourceField;
+use Semitexa\Core\Resource\Attribute\ResourceId;
+use Semitexa\Core\Resource\Attribute\ResourceObject;
+use Semitexa\Core\Resource\Attribute\ResourceRef as ResourceRefAttr;
+use Semitexa\Core\Resource\Attribute\ResourceRefList as ResourceRefListAttr;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataExtractor;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\AddressResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\BotResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\CommentResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\CustomerResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\PreferencesResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\ProfileResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\UserResource;
+use Semitexa\Core\Resource\ResourceObjectInterface;
+use Semitexa\Core\Resource\ResourceRef;
+use Semitexa\Core\Resource\ResourceRefList;
+
+#[ResourceObject(type: 'phase3c.user')]
+final readonly class UserResourceFixture3cSchema implements ResourceObjectInterface
+{
+    public function __construct(
+        #[ResourceId]
+        public string $id,
+        #[ResourceField]
+        public string $name,
+    ) {
+    }
+}
+
+#[ResourceObject(type: 'phase3c.bot')]
+final readonly class BotResourceFixture3cSchema implements ResourceObjectInterface
+{
+    public function __construct(
+        #[ResourceId]
+        public string $id,
+        #[ResourceField]
+        public string $label,
+    ) {
+    }
+}
+
+#[ResourceObject(type: 'phase3c.comment')]
+final readonly class CommentResourceFixture3cSchema implements ResourceObjectInterface
+{
+    public function __construct(
+        #[ResourceId]
+        public string $id,
+        #[ResourceRefAttr(target: [UserResourceFixture3cSchema::class, BotResourceFixture3cSchema::class], include: 'author', href: '/comments/{id}/author')]
+        public ?ResourceRef $author = null,
+        #[ResourceRefListAttr(target: [UserResourceFixture3cSchema::class, BotResourceFixture3cSchema::class], expandable: true, include: 'mentions', href: '/comments/{id}/mentions')]
+        public ResourceRefList $mentions = new ResourceRefList(),
+    ) {
+    }
+}
 
 final class ResourceSchemaGeneratorTest extends TestCase
 {
@@ -23,10 +66,10 @@ final class ResourceSchemaGeneratorTest extends TestCase
     {
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(AddressResource::class));
-        $registry->register($extractor->extract(PreferencesResource::class));
-        $registry->register($extractor->extract(ProfileResource::class));
-        $registry->register($extractor->extract(CustomerResource::class));
+        $registry->register($extractor->extract(FixtureAddressResource::class));
+        $registry->register($extractor->extract(FixturePreferencesResource::class));
+        $registry->register($extractor->extract(FixtureProfileResource::class));
+        $registry->register($extractor->extract(FixtureCustomerResource::class));
         return $registry;
     }
 
@@ -34,9 +77,9 @@ final class ResourceSchemaGeneratorTest extends TestCase
     {
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(UserResource::class));
-        $registry->register($extractor->extract(BotResource::class));
-        $registry->register($extractor->extract(CommentResource::class));
+        $registry->register($extractor->extract(UserResourceFixture3cSchema::class));
+        $registry->register($extractor->extract(BotResourceFixture3cSchema::class));
+        $registry->register($extractor->extract(CommentResourceFixture3cSchema::class));
         return $registry;
     }
 
@@ -150,10 +193,10 @@ final class ResourceSchemaGeneratorTest extends TestCase
         $registry  = $this->customerRegistry();
         $g         = ResourceSchemaGenerator::forTesting($registry);
 
-        self::assertSame('AddressResource', $g->componentName($registry->require(AddressResource::class)));
-        self::assertSame('CustomerResource', $g->componentName($registry->require(CustomerResource::class)));
-        self::assertSame('ResourceRef_ProfileResource', $g->refEnvelopeName($registry->require(ProfileResource::class)));
-        self::assertSame('ResourceRefList_AddressResource', $g->refListEnvelopeName($registry->require(AddressResource::class)));
+        self::assertSame('AddressResource', $g->componentName($registry->require(FixtureAddressResource::class)));
+        self::assertSame('CustomerResource', $g->componentName($registry->require(FixtureCustomerResource::class)));
+        self::assertSame('ResourceRef_ProfileResource', $g->refEnvelopeName($registry->require(FixtureProfileResource::class)));
+        self::assertSame('ResourceRefList_AddressResource', $g->refListEnvelopeName($registry->require(FixtureAddressResource::class)));
     }
 
     #[Test]
