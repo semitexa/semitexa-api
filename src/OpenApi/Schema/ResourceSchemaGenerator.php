@@ -168,10 +168,17 @@ final class ResourceSchemaGenerator
         $schema = match ($field->kind) {
             ResourceFieldKind::Scalar       => $this->scalarSchema($parent, $field),
             ResourceFieldKind::EmbeddedOne  => $this->refOrInline($field->target, $field->nullable, embed: true),
-            ResourceFieldKind::EmbeddedMany => [
-                'type'  => 'array',
-                'items' => ['$ref' => '#/components/schemas/' . $this->componentBasenameFromClass($field->target ?? '')],
-            ],
+            ResourceFieldKind::EmbeddedMany => $field->nullable
+                ? [
+                    'oneOf' => [[
+                        'type'  => 'array',
+                        'items' => ['$ref' => '#/components/schemas/' . $this->componentBasenameFromClass($field->target ?? '')],
+                    ], ['type' => 'null']],
+                ]
+                : [
+                    'type'  => 'array',
+                    'items' => ['$ref' => '#/components/schemas/' . $this->componentBasenameFromClass($field->target ?? '')],
+                ],
             ResourceFieldKind::RefOne  => $this->refEnvelopeRef($field, nullable: $field->nullable),
             ResourceFieldKind::RefMany => $this->refListEnvelopeRef($field, nullable: $field->nullable),
             ResourceFieldKind::Union   => $this->unionSchema($field),
