@@ -18,9 +18,6 @@ use Semitexa\Api\Tests\Fixtures\Customer\GetCustomerPayload;
 use Semitexa\Api\Tests\Fixtures\Customer\ListCustomersPayload;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfilePreferencesResource as FixtureProfilePreferencesResource;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfileResource as FixtureProfileResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\AddressResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\CustomerResource;
-use Semitexa\Core\Tests\Unit\Resource\Fixtures\ProfileResource;
 
 final class ResourceRouteSchemaGeneratorTest extends TestCase
 {
@@ -611,13 +608,13 @@ final class ResourceRouteSchemaGeneratorTest extends TestCase
         // Use a fixture-only customer that has no AsPayload at all.
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(AddressResource::class));
-        $registry->register($extractor->extract(ProfileResource::class));
-        $registry->register($extractor->extract(CustomerResource::class));
+        $registry->register($extractor->extract(FixtureAddressResource::class));
+        $registry->register($extractor->extract(FixtureProfileResource::class));
+        $registry->register($extractor->extract(FixtureCustomerResource::class));
 
         $generator = $this->buildGenerator(
             $registry,
-            new InMemoryDiscovery([CustomerResource::class /* not a payload */]),
+            new InMemoryDiscovery([FixtureCustomerResource::class /* not a payload */]),
         );
 
         $paths = $generator->generatePaths();
