@@ -1,0 +1,604 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Customer API",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/customers": {
+            "get": {
+                "operationId": "GetListCustomers",
+                "parameters": [
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated list of relations to include in the response. Each value must be one of the listed enum tokens; tokens may be combined (e.g. \"addresses,profile\"). Unknown or non-expandable tokens return HTTP 400.",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "addresses",
+                                    "profile",
+                                    "profile.preferences"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "name": "query",
+                        "in": "query",
+                        "required": false,
+                        "description": "GraphQL query string in the bounded Semitexa GraphQL subset. Mutations, subscriptions, fragments, variables, directives, aliases, and field arguments are rejected with HTTP 400. For POST requests, request body query takes precedence over ?query=. The ?query= parameter takes precedence over ?include=.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "description": "One-based page number for collection responses. Defaults to 1. Values less than 1 return HTTP 400. Pages beyond the last return an empty data array with valid pagination metadata.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "default": 1
+                        }
+                    },
+                    {
+                        "name": "perPage",
+                        "in": "query",
+                        "required": false,
+                        "description": "Page size for collection responses. Defaults to 10. Range: 1..50. Values outside the range return HTTP 400.",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "default": 10
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated sort fields applied before pagination. Prefix a field with \"-\" for descending. Allowed fields (Phase 6j allowlist): id, name. Single-field examples: -id, -name, id, name. Multi-field example: \"name,id\" (sorts by name, ties broken by id). Unknown / nested / duplicate / \"--\" fields return HTTP 400. Empty value preserves the route's default catalog order.",
+                        "schema": {
+                            "type": "string",
+                            "example": "id"
+                        }
+                    },
+                    {
+                        "name": "filter",
+                        "in": "query",
+                        "required": false,
+                        "description": "Bounded collection filter expression. Single parameter, semicolon-separated terms with AND semantics. Each term is \"field:operator:value\". \"in\" values are comma-separated. \"contains\" is a case-insensitive substring match on string fields. Allowed (Phase 6k allowlist): id [eq|in], name [eq|contains]. Examples: \"id:eq:value\", \"id:in:1,2,3\", \"name:contains:acme\", \"id:in:1,2;name:contains:acme\". Unknown / nested / duplicate fields, unsupported operators, or empty values return HTTP 400. Filtering happens before sorting and pagination; meta.pagination.total reflects the filtered total.",
+                        "schema": {
+                            "type": "string",
+                            "example": "id:eq:value"
+                        }
+                    },
+                    {
+                        "name": "cursor",
+                        "in": "query",
+                        "required": false,
+                        "description": "Opaque cursor token returned by a previous response. Mutually exclusive with ?page= (HTTP 400 if both present). Tied to the current ?sort= and ?filter= context — replay the cursor with the same sort and filter parameters that produced it. Cursor mode response carries meta.pagination.mode = \"cursor\" with perPage, total, hasNext, nextCursor, and the echoed cursor. Cursor windowing applies after filter and sort, before resolver expansion. A malformed, expired-version, or context-mismatched cursor returns HTTP 400.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data",
+                                        "meta"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/components/schemas/CustomerResource"
+                                            }
+                                        },
+                                        "meta": {
+                                            "type": "object",
+                                            "required": [
+                                                "pagination"
+                                            ],
+                                            "properties": {
+                                                "pagination": {
+                                                    "oneOf": [
+                                                        {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "page",
+                                                                "perPage",
+                                                                "total",
+                                                                "pageCount",
+                                                                "hasNext",
+                                                                "hasPrevious"
+                                                            ],
+                                                            "properties": {
+                                                                "page": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1
+                                                                },
+                                                                "perPage": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1
+                                                                },
+                                                                "total": {
+                                                                    "type": "integer",
+                                                                    "minimum": 0
+                                                                },
+                                                                "pageCount": {
+                                                                    "type": "integer",
+                                                                    "minimum": 0
+                                                                },
+                                                                "hasNext": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "hasPrevious": {
+                                                                    "type": "boolean"
+                                                                }
+                                                            },
+                                                            "additionalProperties": false,
+                                                            "description": "Page-based windowing metadata."
+                                                        },
+                                                        {
+                                                            "type": "object",
+                                                            "required": [
+                                                                "mode",
+                                                                "perPage",
+                                                                "total",
+                                                                "hasNext",
+                                                                "nextCursor",
+                                                                "cursor"
+                                                            ],
+                                                            "properties": {
+                                                                "mode": {
+                                                                    "type": "string",
+                                                                    "enum": [
+                                                                        "cursor"
+                                                                    ]
+                                                                },
+                                                                "perPage": {
+                                                                    "type": "integer",
+                                                                    "minimum": 1
+                                                                },
+                                                                "total": {
+                                                                    "type": "integer",
+                                                                    "minimum": 0
+                                                                },
+                                                                "hasNext": {
+                                                                    "type": "boolean"
+                                                                },
+                                                                "nextCursor": {
+                                                                    "type": "string",
+                                                                    "description": "Opaque token for the next page of results. Replay this value in the next ?cursor= parameter."
+                                                                },
+                                                                "cursor": {
+                                                                    "type": "string",
+                                                                    "description": "The opaque token that produced this result set."
+                                                                }
+                                                            },
+                                                            "additionalProperties": false,
+                                                            "description": "Cursor-based windowing metadata."
+                                                        }
+                                                    ]
+                                                }
+                                            },
+                                            "additionalProperties": false
+                                        }
+                                    }
+                                }
+                            },
+                            "application/ld+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "JSON-LD encoding of CustomerResource. Same Resource fields plus @context, @id, @type per the framework JSON-LD vocabulary. Detailed JSON-LD schema generation is a future phase."
+                                }
+                            },
+                            "application/graphql-response+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    },
+                                    "description": "GraphQL-compatible response envelope for CustomerResource. Detailed GraphQL schema generation, field selection, and introspection are out of scope for this phase."
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/customers/{id}": {
+            "get": {
+                "operationId": "GetCustomer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated list of relations to include in the response. Each value must be one of the listed enum tokens; tokens may be combined (e.g. \"addresses,profile\"). Unknown or non-expandable tokens return HTTP 400.",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "addresses",
+                                    "profile",
+                                    "profile.preferences"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "name": "query",
+                        "in": "query",
+                        "required": false,
+                        "description": "GraphQL query string in the bounded Semitexa GraphQL subset. Mutations, subscriptions, fragments, variables, directives, aliases, and field arguments are rejected with HTTP 400. For POST requests, request body query takes precedence over ?query=. The ?query= parameter takes precedence over ?include=.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CustomerResource"
+                                        }
+                                    }
+                                }
+                            },
+                            "application/ld+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "JSON-LD encoding of CustomerResource. Same Resource fields plus @context, @id, @type per the framework JSON-LD vocabulary. Detailed JSON-LD schema generation is a future phase."
+                                }
+                            },
+                            "application/graphql-response+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    },
+                                    "description": "GraphQL-compatible response envelope for CustomerResource. Detailed GraphQL schema generation, field selection, and introspection are out of scope for this phase."
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "PostGetCustomer",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "include",
+                        "in": "query",
+                        "required": false,
+                        "description": "Comma-separated list of relations to include in the response. Each value must be one of the listed enum tokens; tokens may be combined (e.g. \"addresses,profile\"). Unknown or non-expandable tokens return HTTP 400.",
+                        "style": "form",
+                        "explode": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "addresses",
+                                    "profile",
+                                    "profile.preferences"
+                                ]
+                            }
+                        }
+                    },
+                    {
+                        "name": "query",
+                        "in": "query",
+                        "required": false,
+                        "description": "GraphQL query string in the bounded Semitexa GraphQL subset. Mutations, subscriptions, fragments, variables, directives, aliases, and field arguments are rejected with HTTP 400. For POST requests, request body query takes precedence over ?query=. The ?query= parameter takes precedence over ?include=.",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful response.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "$ref": "#/components/schemas/CustomerResource"
+                                        }
+                                    }
+                                }
+                            },
+                            "application/ld+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "description": "JSON-LD encoding of CustomerResource. Same Resource fields plus @context, @id, @type per the framework JSON-LD vocabulary. Detailed JSON-LD schema generation is a future phase."
+                                }
+                            },
+                            "application/graphql-response+json": {
+                                "schema": {
+                                    "type": "object",
+                                    "required": [
+                                        "data"
+                                    ],
+                                    "properties": {
+                                        "data": {
+                                            "type": "object",
+                                            "additionalProperties": true
+                                        }
+                                    },
+                                    "description": "GraphQL-compatible response envelope for CustomerResource. Detailed GraphQL schema generation, field selection, and introspection are out of scope for this phase."
+                                }
+                            }
+                        }
+                    }
+                },
+                "requestBody": {
+                    "description": "GraphQL request body for CustomerResource. Body query takes precedence over the `?query=` query parameter (Phase 5c) and the `?include=` parameter. The JSON envelope follows the GraphQL over HTTP draft; raw `application/graphql` bodies carry the query string directly.",
+                    "required": false,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "required": [
+                                    "query"
+                                ],
+                                "additionalProperties": true,
+                                "properties": {
+                                    "query": {
+                                        "type": "string",
+                                        "description": "GraphQL query string in the bounded Semitexa GraphQL subset (Phase 5c parser). Mutations, subscriptions, fragments, variables, directives, aliases, and field arguments are rejected with HTTP 400."
+                                    },
+                                    "variables": {
+                                        "description": "Variables are not supported in this phase. Must be omitted, null, or empty. Non-empty values return HTTP 400."
+                                    },
+                                    "operationName": {
+                                        "type": "string",
+                                        "description": "Accepted but ignored. The bounded parser already handles named-query syntax and selects a single root field per request."
+                                    }
+                                }
+                            }
+                        },
+                        "application/graphql": {
+                            "schema": {
+                                "type": "string",
+                                "description": "Raw GraphQL query string in the bounded Semitexa GraphQL subset."
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "AddressResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "city": {
+                        "type": "string"
+                    },
+                    "line1": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "id",
+                    "city",
+                    "line1"
+                ]
+            },
+            "CustomerResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "Display name of the customer."
+                    },
+                    "profile": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ResourceRef_ProfileResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    },
+                    "addresses": {
+                        "$ref": "#/components/schemas/ResourceRefList_AddressResource"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "addresses"
+                ]
+            },
+            "ProfilePreferencesResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "theme": {
+                        "type": "string",
+                        "description": "UI theme preference (e.g. light/dark/auto)."
+                    },
+                    "locale": {
+                        "type": "string",
+                        "description": "IETF BCP 47 language tag preferred by the user."
+                    }
+                },
+                "required": [
+                    "id",
+                    "theme",
+                    "locale"
+                ]
+            },
+            "ProfileResource": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "string"
+                    },
+                    "bio": {
+                        "type": "string"
+                    },
+                    "preferences": {
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/ResourceRef_ProfilePreferencesResource"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "bio"
+                ]
+            },
+            "ResourceRefList_AddressResource": {
+                "type": "object",
+                "description": "To-many reference envelope for AddressResource. href is mandatory in the public factory; data is present when embedded; total accompanies data.",
+                "required": [
+                    "href"
+                ],
+                "properties": {
+                    "href": {
+                        "type": "string",
+                        "format": "uri-reference"
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/AddressResource"
+                        }
+                    },
+                    "total": {
+                        "type": "integer",
+                        "minimum": 0
+                    }
+                },
+                "additionalProperties": false
+            },
+            "ResourceRef_ProfilePreferencesResource": {
+                "type": "object",
+                "description": "To-one reference envelope for ProfilePreferencesResource. type+id are mandatory; href is optional; data is present when embedded.",
+                "required": [
+                    "type",
+                    "id"
+                ],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "const": "profile_preferences"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "href": {
+                        "type": "string",
+                        "format": "uri-reference"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/ProfilePreferencesResource"
+                    }
+                },
+                "additionalProperties": false
+            },
+            "ResourceRef_ProfileResource": {
+                "type": "object",
+                "description": "To-one reference envelope for ProfileResource. type+id are mandatory; href is optional; data is present when embedded.",
+                "required": [
+                    "type",
+                    "id"
+                ],
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "const": "profile"
+                    },
+                    "id": {
+                        "type": "string"
+                    },
+                    "href": {
+                        "type": "string",
+                        "format": "uri-reference"
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/ProfileResource"
+                    }
+                },
+                "additionalProperties": false
+            }
+        }
+    }
+}
