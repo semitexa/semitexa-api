@@ -11,54 +11,11 @@ use Semitexa\Api\Tests\Fixtures\Customer\AddressResource as FixtureAddressResour
 use Semitexa\Api\Tests\Fixtures\Customer\CustomerResource as FixtureCustomerResource;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfilePreferencesResource as FixturePreferencesResource;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfileResource as FixtureProfileResource;
-use Semitexa\Core\Resource\Attribute\ResourceField;
-use Semitexa\Core\Resource\Attribute\ResourceId;
-use Semitexa\Core\Resource\Attribute\ResourceObject;
-use Semitexa\Core\Resource\Attribute\ResourceRef as ResourceRefAttr;
-use Semitexa\Core\Resource\Attribute\ResourceRefList as ResourceRefListAttr;
+use Semitexa\Api\Tests\Fixtures\Union\BotResource as UnionBotResource;
+use Semitexa\Api\Tests\Fixtures\Union\CommentResource as UnionCommentResource;
+use Semitexa\Api\Tests\Fixtures\Union\UserResource as UnionUserResource;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataExtractor;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
-use Semitexa\Core\Resource\ResourceObjectInterface;
-use Semitexa\Core\Resource\ResourceRef;
-use Semitexa\Core\Resource\ResourceRefList;
-
-#[ResourceObject(type: 'phase3c.user')]
-final readonly class UserResourceFixture3cSchema implements ResourceObjectInterface
-{
-    public function __construct(
-        #[ResourceId]
-        public string $id,
-        #[ResourceField]
-        public string $name,
-    ) {
-    }
-}
-
-#[ResourceObject(type: 'phase3c.bot')]
-final readonly class BotResourceFixture3cSchema implements ResourceObjectInterface
-{
-    public function __construct(
-        #[ResourceId]
-        public string $id,
-        #[ResourceField]
-        public string $label,
-    ) {
-    }
-}
-
-#[ResourceObject(type: 'phase3c.comment')]
-final readonly class CommentResourceFixture3cSchema implements ResourceObjectInterface
-{
-    public function __construct(
-        #[ResourceId]
-        public string $id,
-        #[ResourceRefAttr(target: [UserResourceFixture3cSchema::class, BotResourceFixture3cSchema::class], include: 'author', href: '/comments/{id}/author')]
-        public ?ResourceRef $author = null,
-        #[ResourceRefListAttr(target: [UserResourceFixture3cSchema::class, BotResourceFixture3cSchema::class], expandable: true, include: 'mentions', href: '/comments/{id}/mentions')]
-        public ResourceRefList $mentions = new ResourceRefList(),
-    ) {
-    }
-}
 
 final class ResourceSchemaGeneratorTest extends TestCase
 {
@@ -77,9 +34,9 @@ final class ResourceSchemaGeneratorTest extends TestCase
     {
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(UserResourceFixture3cSchema::class));
-        $registry->register($extractor->extract(BotResourceFixture3cSchema::class));
-        $registry->register($extractor->extract(CommentResourceFixture3cSchema::class));
+        $registry->register($extractor->extract(UnionUserResource::class));
+        $registry->register($extractor->extract(UnionBotResource::class));
+        $registry->register($extractor->extract(UnionCommentResource::class));
         return $registry;
     }
 

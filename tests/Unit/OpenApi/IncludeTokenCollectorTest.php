@@ -21,44 +21,9 @@ use Semitexa\Api\Tests\Fixtures\Customer\AddressResource as FixtureAddressResour
 use Semitexa\Api\Tests\Fixtures\Customer\CustomerResource as FixtureCustomerResource;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfilePreferencesResource as FixturePreferencesResource;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfileResource as FixtureProfileResource;
-
-#[ResourceObject(type: 'phase3c.user')]
-final readonly class UserResourceFixture3c implements ResourceObjectInterface
-{
-    public function __construct(
-        #[ResourceId]
-        public string $id,
-        #[ResourceField]
-        public string $name,
-    ) {
-    }
-}
-
-#[ResourceObject(type: 'phase3c.bot')]
-final readonly class BotResourceFixture3c implements ResourceObjectInterface
-{
-    public function __construct(
-        #[ResourceId]
-        public string $id,
-        #[ResourceField]
-        public string $label,
-    ) {
-    }
-}
-
-#[ResourceObject(type: 'phase3c.comment')]
-final readonly class CommentResourceFixture3c implements ResourceObjectInterface
-{
-    public function __construct(
-        #[ResourceId]
-        public string $id,
-        #[ResourceRefAttr(target: [UserResourceFixture3c::class, BotResourceFixture3c::class], include: 'author', href: '/comments/{id}/author')]
-        public ?ResourceRef $author = null,
-        #[ResourceRefListAttr(target: [UserResourceFixture3c::class, BotResourceFixture3c::class], expandable: true, include: 'mentions', href: '/comments/{id}/mentions')]
-        public ResourceRefList $mentions = new ResourceRefList(),
-    ) {
-    }
-}
+use Semitexa\Api\Tests\Fixtures\Union\BotResource as UnionBotResource;
+use Semitexa\Api\Tests\Fixtures\Union\CommentResource as UnionCommentResource;
+use Semitexa\Api\Tests\Fixtures\Union\UserResource as UnionUserResource;
 
 #[ResourceObject(type: 'phase3c.country')]
 final readonly class CountryResourceFixture3c implements ResourceObjectInterface
@@ -143,7 +108,7 @@ final class IncludeTokenCollectorTest extends TestCase
     {
         $registry = $this->customerRegistry();
         $c = IncludeTokenCollector::forTesting($registry);
-        $tokens = $c->collect($registry->require(CustomerResource::class));
+        $tokens = $c->collect($registry->require(FixtureCustomerResource::class));
 
         // Phase 6g: ProfileResource gained an optional resolver-backed
         // `preferences` relation. The collector emits the dotted
@@ -209,12 +174,12 @@ final class IncludeTokenCollectorTest extends TestCase
     {
         $extractor = new ResourceMetadataExtractor();
         $registry  = ResourceMetadataRegistry::forTesting($extractor);
-        $registry->register($extractor->extract(UserResourceFixture3c::class));
-        $registry->register($extractor->extract(BotResourceFixture3c::class));
-        $registry->register($extractor->extract(CommentResourceFixture3c::class));
+        $registry->register($extractor->extract(UnionUserResource::class));
+        $registry->register($extractor->extract(UnionBotResource::class));
+        $registry->register($extractor->extract(UnionCommentResource::class));
 
         $c = IncludeTokenCollector::forTesting($registry);
-        $tokens = $c->collect($registry->require(CommentResourceFixture3c::class));
+        $tokens = $c->collect($registry->require(UnionCommentResource::class));
 
         // CommentResource: author (NOT expandable in the fixture) → skipped.
         // CommentResource: mentions (expandable: true) → token "mentions".
@@ -228,8 +193,8 @@ final class IncludeTokenCollectorTest extends TestCase
         $registry = $this->customerRegistry();
         $c = IncludeTokenCollector::forTesting($registry);
 
-        $a = $c->collect($registry->require(CustomerResource::class));
-        $b = $c->collect($registry->require(CustomerResource::class));
+        $a = $c->collect($registry->require(FixtureCustomerResource::class));
+        $b = $c->collect($registry->require(FixtureCustomerResource::class));
         self::assertSame($a, $b);
     }
 
@@ -240,8 +205,8 @@ final class IncludeTokenCollectorTest extends TestCase
         $c = IncludeTokenCollector::forTesting($registry);
 
         $hashBefore = md5(serialize($registry->all()));
-        $c->collect($registry->require(CustomerResource::class));
-        $c->collect($registry->require(CustomerResource::class));
+        $c->collect($registry->require(FixtureCustomerResource::class));
+        $c->collect($registry->require(FixtureCustomerResource::class));
         self::assertSame($hashBefore, md5(serialize($registry->all())));
     }
 }
