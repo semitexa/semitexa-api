@@ -38,6 +38,5 @@
         "m2m",
         "machine-auth",
         "versioning"
-    ],
-    "version": "v0.1.4"
+    ]
 }
