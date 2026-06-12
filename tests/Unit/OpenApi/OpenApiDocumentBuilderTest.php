@@ -6,11 +6,13 @@ namespace Semitexa\Api\Tests\Unit\OpenApi;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Semitexa\Api\Discovery\CollectionContractBlockContributor;
 use Semitexa\Api\OpenApi\OpenApiDocumentBuilder;
 use Semitexa\Api\OpenApi\Route\ResourceRouteSchemaGenerator;
 use Semitexa\Api\OpenApi\Schema\IncludeTokenCollector;
 use Semitexa\Api\OpenApi\Schema\ResourceSchemaGenerator;
 use Semitexa\Core\Discovery\ClassDiscovery;
+use Semitexa\Core\Http\DefaultRouteContractAssembler;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataExtractor;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
 use Semitexa\Api\Tests\Fixtures\Customer\AddressResource;
@@ -34,7 +36,8 @@ final class OpenApiDocumentBuilderTest extends TestCase
         $schemaGen = ResourceSchemaGenerator::forTesting($registry);
         $discovery = new InMemoryDiscovery([GetCustomerPayload::class, ListCustomersPayload::class]);
         $includeTokens = IncludeTokenCollector::forTesting($registry);
-        $routeGen  = ResourceRouteSchemaGenerator::forTesting($discovery, $registry, $schemaGen, $includeTokens);
+        $assembler = DefaultRouteContractAssembler::forTesting($registry, [new CollectionContractBlockContributor()]);
+        $routeGen  = ResourceRouteSchemaGenerator::forTesting($discovery, $registry, $schemaGen, $includeTokens, $assembler);
 
         return OpenApiDocumentBuilder::forTesting($schemaGen, $routeGen);
     }
@@ -78,7 +81,8 @@ final class OpenApiDocumentBuilderTest extends TestCase
         $schemaGen = ResourceSchemaGenerator::forTesting($registry);
         $discovery = new InMemoryDiscovery([]);
         $includeTokens = IncludeTokenCollector::forTesting($registry);
-        $routeGen  = ResourceRouteSchemaGenerator::forTesting($discovery, $registry, $schemaGen, $includeTokens);
+        $assembler = DefaultRouteContractAssembler::forTesting($registry, [new CollectionContractBlockContributor()]);
+        $routeGen  = ResourceRouteSchemaGenerator::forTesting($discovery, $registry, $schemaGen, $includeTokens, $assembler);
 
         $b = OpenApiDocumentBuilder::forTesting($schemaGen, $routeGen);
         $json = $b->toJson();

@@ -6,10 +6,12 @@ namespace Semitexa\Api\Tests\Unit\OpenApi;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Semitexa\Api\Discovery\CollectionContractBlockContributor;
 use Semitexa\Api\OpenApi\Route\ResourceRouteSchemaGenerator;
 use Semitexa\Api\OpenApi\Schema\IncludeTokenCollector;
 use Semitexa\Api\OpenApi\Schema\ResourceSchemaGenerator;
 use Semitexa\Core\Discovery\ClassDiscovery;
+use Semitexa\Core\Http\DefaultRouteContractAssembler;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataExtractor;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
 use Semitexa\Api\Tests\Fixtures\Customer\AddressResource as FixtureAddressResource;
@@ -36,7 +38,11 @@ final class ResourceRouteSchemaGeneratorTest extends TestCase
     {
         $schemaGen     = ResourceSchemaGenerator::forTesting($registry);
         $includeTokens = IncludeTokenCollector::forTesting($registry);
-        return ResourceRouteSchemaGenerator::forTesting($discovery, $registry, $schemaGen, $includeTokens);
+        $assembler     = DefaultRouteContractAssembler::forTesting(
+            $registry,
+            [new CollectionContractBlockContributor()],
+        );
+        return ResourceRouteSchemaGenerator::forTesting($discovery, $registry, $schemaGen, $includeTokens, $assembler);
     }
 
     #[Test]
