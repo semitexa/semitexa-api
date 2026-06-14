@@ -15,6 +15,7 @@ use Semitexa\Api\Attribute\ProducesResourceObject;
 use Semitexa\Core\Attribute\AsService;
 use Semitexa\Core\Attribute\SatisfiesServiceContract;
 use Semitexa\Core\Attribute\WatchScopes;
+use Semitexa\Core\Contract\CollectionAwareContributorInterface;
 use Semitexa\Core\Contract\RouteContractBlockContributorInterface;
 use Semitexa\Core\Resource\CollectionPaginationPolicy;
 use Semitexa\Core\Resource\Pagination\CollectionPageRequest;
@@ -44,7 +45,9 @@ use Semitexa\Core\Resource\Pagination\CollectionPageRequest;
  */
 #[AsService]
 #[SatisfiesServiceContract(of: RouteContractBlockContributorInterface::class)]
-final class CollectionContractBlockContributor implements RouteContractBlockContributorInterface
+final class CollectionContractBlockContributor implements
+    RouteContractBlockContributorInterface,
+    CollectionAwareContributorInterface
 {
     public function contributeBlocks(string $payloadClass, ?string $responseClass): array
     {
@@ -179,6 +182,21 @@ final class CollectionContractBlockContributor implements RouteContractBlockCont
         }
 
         return null;
+    }
+
+    /**
+     * A response is a collection iff it declares `#[ProducesResourceCollection]`
+     * — true even when it carries no sort/filter/pagination attributes (a bare
+     * collection that contributes no `collection` block). This is the reliable
+     * cardinality signal {@see RouteContract::$isCollection} surfaces.
+     */
+    public function resolvesCollection(?string $responseClass): bool
+    {
+        if ($responseClass === null || !class_exists($responseClass)) {
+            return false;
+        }
+
+        return (new ReflectionClass($responseClass))->getAttributes(ProducesResourceCollection::class) !== [];
     }
 
     /**
