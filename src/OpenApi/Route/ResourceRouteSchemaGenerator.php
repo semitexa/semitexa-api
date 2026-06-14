@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Semitexa\Api\OpenApi\Route;
 
 use ReflectionClass;
-use Semitexa\Api\Attribute\CollectionFilterable;
-use Semitexa\Api\Attribute\CollectionSortable;
 use Semitexa\Api\Attribute\ProducesResourceCollection;
 use Semitexa\Api\Attribute\ProducesResourceObject;
+use Semitexa\Core\Resource\CollectionPaginationPolicy;
 use Semitexa\Core\Resource\Pagination\CollectionPageRequest;
 use Semitexa\Api\OpenApi\Schema\IncludeTokenCollector;
 use Semitexa\Api\OpenApi\Schema\ResourceSchemaGenerator;
 use Semitexa\Core\Attribute\AbstractPayloadRoute;
 use Semitexa\Core\Attribute\AsService;
 use Semitexa\Core\Attribute\InjectAsReadonly;
+use Semitexa\Core\Contract\RouteContractAssemblerInterface;
 use Semitexa\Core\Discovery\ClassDiscovery;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
 use Semitexa\Core\Resource\RenderProfile;
@@ -44,17 +44,22 @@ final class ResourceRouteSchemaGenerator
     #[InjectAsReadonly]
     protected IncludeTokenCollector $includeTokens;
 
+    #[InjectAsReadonly]
+    protected RouteContractAssemblerInterface $contractAssembler;
+
     public static function forTesting(
         ClassDiscovery $classDiscovery,
         ResourceMetadataRegistry $registry,
         ResourceSchemaGenerator $schemaGenerator,
         IncludeTokenCollector $includeTokens,
+        RouteContractAssemblerInterface $contractAssembler,
     ): self {
         $g = new self();
-        $g->classDiscovery   = $classDiscovery;
-        $g->registry         = $registry;
-        $g->schemaGenerator  = $schemaGenerator;
-        $g->includeTokens    = $includeTokens;
+        $g->classDiscovery    = $classDiscovery;
+        $g->registry          = $registry;
+        $g->schemaGenerator   = $schemaGenerator;
+        $g->includeTokens     = $includeTokens;
+        $g->contractAssembler = $contractAssembler;
         return $g;
     }
 
@@ -134,6 +139,15 @@ final class ResourceRouteSchemaGenerator
 
         $parameters = $this->extractPathParameters($path);
 
+        // One Way Phase 2: routes with a declared `#[CollectionPaginated]`
+        // policy emit `meta.pagination.mode` (and may answer in single
+        // mode); routes with `#[CollectionFilterOptions]` emit
+        // `meta.filterOptions`. Both flags extend the response schema for
+        // exactly those routes — undeclared routes keep the Phase 6
+        // schema byte-identically.
+        $hasDeclaredPaginationPolicy = false;
+        $filterOptionFields = [];
+
         // Phase 3c: emit `include=` parameter only when the payload's runtime
         // contract actually accepts it (i.e. it implements
         // `SupportsResourceIncludes`). Routes that don't honour `?include=`
@@ -162,15 +176,42 @@ final class ResourceRouteSchemaGenerator
         // envelope. Only collection-shaped routes advertise the
         // parameters; singular routes do not.
         if ($isCollection) {
-            $parameters[] = $this->buildPageParameter();
-            $parameters[] = $this->buildPerPageParameter();
+            // One Way Pattern Phase 1: the collection facts (sort/filter
+            // allowlists + pagination bounds) are read from the route
+            // contract assembler — the same source the OPTIONS document is
+            // served from (both shapes, one source). Routes whose contract
+            // carries no collection block (no allowlist attributes) fall
+            // back to the static CollectionPageRequest bounds, which is
+            // what the contract would advertise for them anyway.
+            $contract        = $this->contractAssembler->assemble($payloadClass, $responseClass);
+            $collection      = $contract->collectionBlock() ?? [];
+            $paginationBlock = $collection['pagination'] ?? [];
+            $bounds          = is_array($paginationBlock) ? $paginationBlock : [];
+
+            // Only advertise ?page= when the route's pagination mode accepts it
+            // (page or auto). Cursor- and single-mode routes reject an explicit
+            // ?page= at runtime (CollectionFeedSupport::criteriaFor →
+            // InvalidPaginationException), so documenting it would generate
+            // clients that send a guaranteed-400 parameter. The static fallback
+            // (no #[CollectionPaginated]) is page-mode, so it keeps ?page=.
+            $modes = $bounds['modes'] ?? [CollectionPaginationPolicy::MODE_PAGE];
+            $modes = is_array($modes) ? $modes : [CollectionPaginationPolicy::MODE_PAGE];
+            if (in_array(CollectionPaginationPolicy::MODE_PAGE, $modes, true)) {
+                $parameters[] = $this->buildPageParameter(
+                    $bounds['defaultPage'] ?? CollectionPageRequest::DEFAULT_PAGE,
+                );
+            }
+            $parameters[] = $this->buildPerPageParameter(
+                $bounds['defaultPerPage'] ?? CollectionPageRequest::DEFAULT_PER_PAGE,
+                $bounds['maxPerPage'] ?? CollectionPageRequest::MAX_PER_PAGE,
+            );
 
             // Phase 6j: a collection response that carries
             // `#[CollectionSortable]` advertises the bounded `?sort=`
             // parameter. Routes without the attribute (or with an
             // empty allowlist) do not advertise it; the runtime
             // parser then rejects every non-empty value.
-            $sortFields = $this->sortAllowlistFor($responseClass);
+            $sortFields = $collection['sort']['fields'] ?? [];
             if ($sortFields !== []) {
                 $parameters[] = $this->buildSortParameter($sortFields);
             }
@@ -180,10 +221,25 @@ final class ResourceRouteSchemaGenerator
             // `?filter=` parameter. Same allowlist contract as sort;
             // routes without the attribute (or with an empty map)
             // do not advertise it.
-            $filterFields = $this->filterAllowlistFor($responseClass);
+            $filterFields = $collection['filter']['fields'] ?? [];
             if ($filterFields !== []) {
                 $parameters[] = $this->buildFilterParameter($filterFields);
             }
+
+            // One Way Phase 2: a collection response that carries
+            // `#[CollectionSearchable]` advertises the free-text search
+            // parameter (`q` by default). Routes without the attribute
+            // do not advertise it — additive only.
+            $search = $collection['search'] ?? null;
+            if (is_array($search) && isset($search['param'], $search['fields'])) {
+                $parameters[] = $this->buildSearchParameter(
+                    (string) $search['param'],
+                    (array) $search['fields'],
+                );
+            }
+
+            $hasDeclaredPaginationPolicy = isset($collection['pagination']['modes']);
+            $filterOptionFields = $collection['filterOptions']['fields'] ?? [];
 
             // Phase 6l: collection routes also advertise the optional
             // `?cursor=` parameter. The cursor is opaque, mutually
@@ -192,19 +248,27 @@ final class ResourceRouteSchemaGenerator
             $parameters[] = $this->buildCursorParameter();
         }
 
+        $pageBranchProperties = [];
+        if ($hasDeclaredPaginationPolicy) {
+            // Declared-policy routes stamp the effective mode discriminator
+            // on page/single envelopes (cursor envelopes always carry it).
+            $pageBranchProperties['mode'] = ['type' => 'string', 'enum' => ['page', 'single']];
+        }
+        $pageBranchProperties += [
+            'page'        => ['type' => 'integer', 'minimum' => 1],
+            'perPage'     => ['type' => 'integer', 'minimum' => 1],
+            'total'       => ['type' => 'integer', 'minimum' => 0],
+            'pageCount'   => ['type' => 'integer', 'minimum' => 0],
+            'hasNext'     => ['type' => 'boolean'],
+            'hasPrevious' => ['type' => 'boolean'],
+        ];
+
         $paginationSchema = [
             'oneOf' => [
                 [
                     'type'       => 'object',
                     'required'   => ['page', 'perPage', 'total', 'pageCount', 'hasNext', 'hasPrevious'],
-                    'properties' => [
-                        'page'        => ['type' => 'integer', 'minimum' => 1],
-                        'perPage'     => ['type' => 'integer', 'minimum' => 1],
-                        'total'       => ['type' => 'integer', 'minimum' => 0],
-                        'pageCount'   => ['type' => 'integer', 'minimum' => 0],
-                        'hasNext'     => ['type' => 'boolean'],
-                        'hasPrevious' => ['type' => 'boolean'],
-                    ],
+                    'properties' => $pageBranchProperties,
                     'additionalProperties' => false,
                     'description'          => 'Page-based windowing metadata.',
                 ],
@@ -231,6 +295,29 @@ final class ResourceRouteSchemaGenerator
             ],
         ];
 
+        $metaProperties = ['pagination' => $paginationSchema];
+        if ($filterOptionFields !== []) {
+            $metaProperties['filterOptions'] = [
+                'type'        => 'object',
+                'description' => sprintf(
+                    'Server-fed select options for the declared filterable fields: %s.',
+                    implode(', ', array_map('strval', $filterOptionFields)),
+                ),
+                'additionalProperties' => [
+                    'type'  => 'array',
+                    'items' => [
+                        'type'       => 'object',
+                        'required'   => ['value', 'label'],
+                        'properties' => [
+                            'value' => ['type' => 'string'],
+                            'label' => ['type' => 'string'],
+                        ],
+                        'additionalProperties' => false,
+                    ],
+                ],
+            ];
+        }
+
         $jsonSchema = $isCollection
             ? [
                 'type'       => 'object',
@@ -243,9 +330,7 @@ final class ResourceRouteSchemaGenerator
                     'meta' => [
                         'type'       => 'object',
                         'required'   => ['pagination'],
-                        'properties' => [
-                            'pagination' => $paginationSchema,
-                        ],
+                        'properties' => $metaProperties,
                         'additionalProperties' => false,
                     ],
                 ],
@@ -392,48 +477,6 @@ final class ResourceRouteSchemaGenerator
     }
 
     /**
-     * Phase 6j: read the route's sort allowlist from the response
-     * class's `#[CollectionSortable]` attribute. Returns an empty
-     * list when the attribute is absent, which suppresses the
-     * `?sort=` parameter on the operation entirely.
-     *
-     * @param class-string $responseClass
-     * @return list<string>
-     */
-    private function sortAllowlistFor(string $responseClass): array
-    {
-        $ref   = new ReflectionClass($responseClass);
-        $attrs = $ref->getAttributes(CollectionSortable::class);
-        if ($attrs === []) {
-            return [];
-        }
-        /** @var CollectionSortable $sortable */
-        $sortable = $attrs[0]->newInstance();
-        return array_values($sortable->fields);
-    }
-
-    /**
-     * Phase 6k: read the route's filter allowlist from the response
-     * class's `#[CollectionFilterable]` attribute. Returns an empty
-     * map when the attribute is absent, which suppresses the
-     * `?filter=` parameter on the operation entirely.
-     *
-     * @param class-string $responseClass
-     * @return array<string, list<string>>
-     */
-    private function filterAllowlistFor(string $responseClass): array
-    {
-        $ref   = new ReflectionClass($responseClass);
-        $attrs = $ref->getAttributes(CollectionFilterable::class);
-        if ($attrs === []) {
-            return [];
-        }
-        /** @var CollectionFilterable $filterable */
-        $filterable = $attrs[0]->newInstance();
-        return $filterable->fields;
-    }
-
-    /**
      * Build an OpenAPI 3.1 `include` query parameter from a sorted list of
      * accepted tokens. v1 uses the simple `enum` representation: each token
      * lists what the *runtime* IncludeValidator accepts; the description
@@ -467,7 +510,7 @@ final class ResourceRouteSchemaGenerator
      *
      * @return array<string, mixed>
      */
-    private function buildPageParameter(): array
+    private function buildPageParameter(int $defaultPage): array
     {
         return [
             'name'        => 'page',
@@ -477,12 +520,12 @@ final class ResourceRouteSchemaGenerator
                 'One-based page number for collection responses. Defaults to %d. '
                 . 'Values less than 1 return HTTP 400. '
                 . 'Pages beyond the last return an empty data array with valid pagination metadata.',
-                CollectionPageRequest::DEFAULT_PAGE,
+                $defaultPage,
             ),
             'schema'      => [
                 'type'    => 'integer',
                 'minimum' => 1,
-                'default' => CollectionPageRequest::DEFAULT_PAGE,
+                'default' => $defaultPage,
             ],
         ];
     }
@@ -494,7 +537,7 @@ final class ResourceRouteSchemaGenerator
      *
      * @return array<string, mixed>
      */
-    private function buildPerPageParameter(): array
+    private function buildPerPageParameter(int $defaultPerPage, int $maxPerPage): array
     {
         return [
             'name'        => 'perPage',
@@ -503,14 +546,14 @@ final class ResourceRouteSchemaGenerator
             'description' => sprintf(
                 'Page size for collection responses. Defaults to %d. '
                 . 'Range: 1..%d. Values outside the range return HTTP 400.',
-                CollectionPageRequest::DEFAULT_PER_PAGE,
-                CollectionPageRequest::MAX_PER_PAGE,
+                $defaultPerPage,
+                $maxPerPage,
             ),
             'schema'      => [
                 'type'    => 'integer',
                 'minimum' => 1,
-                'maximum' => CollectionPageRequest::MAX_PER_PAGE,
-                'default' => CollectionPageRequest::DEFAULT_PER_PAGE,
+                'maximum' => $maxPerPage,
+                'default' => $defaultPerPage,
             ],
         ];
     }
@@ -601,6 +644,33 @@ final class ResourceRouteSchemaGenerator
                 'type'    => 'string',
                 'example' => sprintf('%s:%s:value', $exampleField, $exampleOp),
             ],
+        ];
+    }
+
+    /**
+     * One Way Phase 2: free-text search parameter for collection routes
+     * that declare `#[CollectionSearchable]`. The parameter name is the
+     * route's declared search param (`q` by default); the description
+     * lists the fields the term covers.
+     *
+     * @param list<string> $fields
+     * @return array<string, mixed>
+     */
+    private function buildSearchParameter(string $param, array $fields): array
+    {
+        return [
+            'name'        => $param,
+            'in'          => 'query',
+            'required'    => false,
+            'description' => sprintf(
+                'Free-text search term. Case-insensitive substring match across: %s '
+                . '(a row matches when ANY listed field contains the term). '
+                . 'Applied together with ?filter= (AND between the two) before '
+                . 'sorting and pagination; meta.pagination.total reflects the '
+                . 'searched total. LIKE wildcards in the term are matched literally.',
+                implode(', ', array_map('strval', $fields)),
+            ),
+            'schema'      => ['type' => 'string'],
         ];
     }
 
