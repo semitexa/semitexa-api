@@ -7,6 +7,7 @@ namespace Semitexa\Api\OpenApi\Route;
 use ReflectionClass;
 use Semitexa\Api\Attribute\ProducesResourceCollection;
 use Semitexa\Api\Attribute\ProducesResourceObject;
+use Semitexa\Core\Resource\CollectionPaginationPolicy;
 use Semitexa\Core\Resource\Pagination\CollectionPageRequest;
 use Semitexa\Api\OpenApi\Schema\IncludeTokenCollector;
 use Semitexa\Api\OpenApi\Schema\ResourceSchemaGenerator;
@@ -182,13 +183,24 @@ final class ResourceRouteSchemaGenerator
             // carries no collection block (no allowlist attributes) fall
             // back to the static CollectionPageRequest bounds, which is
             // what the contract would advertise for them anyway.
-            $contract   = $this->contractAssembler->assemble($payloadClass, $responseClass);
-            $collection = $contract->collectionBlock() ?? [];
-            $bounds     = $collection['pagination'] ?? [];
+            $contract        = $this->contractAssembler->assemble($payloadClass, $responseClass);
+            $collection      = $contract->collectionBlock() ?? [];
+            $paginationBlock = $collection['pagination'] ?? [];
+            $bounds          = is_array($paginationBlock) ? $paginationBlock : [];
 
-            $parameters[] = $this->buildPageParameter(
-                $bounds['defaultPage'] ?? CollectionPageRequest::DEFAULT_PAGE,
-            );
+            // Only advertise ?page= when the route's pagination mode accepts it
+            // (page or auto). Cursor- and single-mode routes reject an explicit
+            // ?page= at runtime (CollectionFeedSupport::criteriaFor →
+            // InvalidPaginationException), so documenting it would generate
+            // clients that send a guaranteed-400 parameter. The static fallback
+            // (no #[CollectionPaginated]) is page-mode, so it keeps ?page=.
+            $modes = $bounds['modes'] ?? [CollectionPaginationPolicy::MODE_PAGE];
+            $modes = is_array($modes) ? $modes : [CollectionPaginationPolicy::MODE_PAGE];
+            if (in_array(CollectionPaginationPolicy::MODE_PAGE, $modes, true)) {
+                $parameters[] = $this->buildPageParameter(
+                    $bounds['defaultPage'] ?? CollectionPageRequest::DEFAULT_PAGE,
+                );
+            }
             $parameters[] = $this->buildPerPageParameter(
                 $bounds['defaultPerPage'] ?? CollectionPageRequest::DEFAULT_PER_PAGE,
                 $bounds['maxPerPage'] ?? CollectionPageRequest::MAX_PER_PAGE,
