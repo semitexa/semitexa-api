@@ -44,6 +44,18 @@ use Semitexa\Core\Resource\Sort\CollectionSortRequest;
 #[AsService]
 final class CollectionFeedSupport
 {
+    /**
+     * Per-response-class collection declarations, resolved once. `criteriaFor()`
+     * runs on EVERY canonical collection request, and the four declarations it
+     * reads (`#[CollectionPaginated]` / `#[CollectionSearchable]` /
+     * `#[CollectionSortable]` / `#[CollectionFilterable]`) are static per class —
+     * so reflecting them on every request is pure waste. Memoize per worker,
+     * mirroring {@see \Semitexa\Api\Application\Service\ApiRouteMetadataResolver}.
+     *
+     * @var array<class-string, array{policy: CollectionPaginationPolicy, searchable: ?CollectionSearchable, sort: list<string>, filter: array<string, list<string>>}>
+     */
+    private static array $declarationsCache = [];
+
     public function criteriaFor(
         string $responseClass,
         ?string $rawQ = null,
@@ -53,10 +65,10 @@ final class CollectionFeedSupport
         ?string $rawPerPage = null,
         ?string $rawCursor = null,
     ): CollectionCriteria {
-        $ref = new ReflectionClass($responseClass);
+        $declarations = $this->declarationsFor($responseClass);
 
-        $policy     = $this->policyFor($ref);
-        $searchable = $this->searchableFor($ref);
+        $policy     = $declarations['policy'];
+        $searchable = $declarations['searchable'];
 
         $cursor           = self::trimToNull($rawCursor);
         $pageWasRequested = self::trimToNull($rawPage) !== null;
@@ -84,11 +96,11 @@ final class CollectionFeedSupport
 
         $sort = CollectionSortRequest::fromQueryParam(
             self::trimToNull($rawSort),
-            $this->sortAllowlistFor($ref),
+            $declarations['sort'],
         );
         $filter = CollectionFilterRequest::fromQueryParam(
             self::trimToNull($rawFilter),
-            $this->filterAllowlistFor($ref),
+            $declarations['filter'],
         );
         $page = CollectionPageRequest::fromQueryParams(
             self::trimToNull($rawPage),
@@ -112,6 +124,30 @@ final class CollectionFeedSupport
             policy:           $policy,
             pageWasRequested: $pageWasRequested,
         );
+    }
+
+    /**
+     * Resolve (and memoize) the four collection declarations for a response
+     * class. Reflection happens once per class per worker; every subsequent
+     * request reuses the cached result.
+     *
+     * @param class-string $responseClass
+     * @return array{policy: CollectionPaginationPolicy, searchable: ?CollectionSearchable, sort: list<string>, filter: array<string, list<string>>}
+     */
+    private function declarationsFor(string $responseClass): array
+    {
+        if (isset(self::$declarationsCache[$responseClass])) {
+            return self::$declarationsCache[$responseClass];
+        }
+
+        $ref = new ReflectionClass($responseClass);
+
+        return self::$declarationsCache[$responseClass] = [
+            'policy'     => $this->policyFor($ref),
+            'searchable' => $this->searchableFor($ref),
+            'sort'       => $this->sortAllowlistFor($ref),
+            'filter'     => $this->filterAllowlistFor($ref),
+        ];
     }
 
     /** @param ReflectionClass<object> $ref */
