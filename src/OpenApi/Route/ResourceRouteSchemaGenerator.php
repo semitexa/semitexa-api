@@ -241,11 +241,14 @@ final class ResourceRouteSchemaGenerator
             $hasDeclaredPaginationPolicy = isset($collection['pagination']['modes']);
             $filterOptionFields = $collection['filterOptions']['fields'] ?? [];
 
-            // Phase 6l: collection routes also advertise the optional
-            // `?cursor=` parameter. The cursor is opaque, mutually
-            // exclusive with `?page=`, and tied to the current sort
-            // + filter context. Singular routes do not advertise it.
-            $parameters[] = $this->buildCursorParameter();
+            // Phase 6l: the opaque `?cursor=`, mutually exclusive with `?page=`
+            // and tied to the current sort + filter. Gated for the same reason
+            // `?page=` above is — CollectionFeedSupport answers 400 for a cursor
+            // on page- and single-mode routes (and undeclared means page), so
+            // documenting it there generates guaranteed-400 clients.
+            if (in_array(CollectionPaginationPolicy::MODE_CURSOR, $modes, true)) {
+                $parameters[] = $this->buildCursorParameter();
+            }
         }
 
         $pageBranchProperties = [];

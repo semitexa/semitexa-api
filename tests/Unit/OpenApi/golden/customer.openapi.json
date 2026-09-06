@@ -79,15 +79,6 @@
                             "type": "string",
                             "example": "id:eq:value"
                         }
-                    },
-                    {
-                        "name": "cursor",
-                        "in": "query",
-                        "required": false,
-                        "description": "Opaque cursor token returned by a previous response. Mutually exclusive with ?page= (HTTP 400 if both present). Tied to the current ?sort= and ?filter= context — replay the cursor with the same sort and filter parameters that produced it. Cursor mode response carries meta.pagination.mode = \"cursor\" with perPage, total, hasNext, nextCursor, and the echoed cursor. Cursor windowing applies after filter and sort, before resolver expansion. A malformed, expired-version, or context-mismatched cursor returns HTTP 400.",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "responses": {
