@@ -14,6 +14,8 @@ use Semitexa\Core\Discovery\ClassDiscovery;
 use Semitexa\Core\Http\DefaultRouteContractAssembler;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataExtractor;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
+use Semitexa\Api\Tests\Fixtures\Collection\ListSingleModeCollectionPayload;
+use Semitexa\Api\Tests\Fixtures\Collection\ListCursorModeCollectionPayload;
 use Semitexa\Api\Tests\Fixtures\Customer\AddressResource as FixtureAddressResource;
 use Semitexa\Api\Tests\Fixtures\Customer\CustomerResource as FixtureCustomerResource;
 use Semitexa\Api\Tests\Fixtures\Customer\GetCustomerPayload;
@@ -626,7 +628,82 @@ final class ResourceRouteSchemaGeneratorTest extends TestCase
         $paths = $generator->generatePaths();
         self::assertSame([], $paths);
     }
-}
+    /**
+     * A documented parameter the runtime refuses is worse than an undocumented
+     * one: a client generated from this document sends it and gets a
+     * guaranteed 400.
+     *
+     * CollectionFeedSupport::criteriaFor() rejects `?cursor=` on a page-mode
+     * route and on a single-mode route, and `?page=` on a cursor-mode route.
+     * `?page=` was already gated on the declared modes; `?cursor=` was emitted
+     * for every collection route regardless — including the undeclared ones,
+     * which default to page mode.
+     */
+    #[Test]
+    public function a_page_mode_collection_does_not_advertise_the_cursor_it_would_reject(): void
+    {
+        $registry  = $this->customerRegistry();
+        $generator = $this->buildGenerator($registry, new InMemoryDiscovery([ListCustomersPayload::class]));
 
-// InMemoryDiscovery moved to its own file (Semitexa\Api\Tests\Unit\OpenApi\InMemoryDiscovery)
-// so single-file phpunit runs (e.g. ai:verify) can autoload it.
+        $names = $this->parameterNames($generator->generatePaths()['/customers']['get']);
+
+        self::assertContains('page', $names, 'a page-mode route still takes ?page=');
+        self::assertContains('perPage', $names);
+        self::assertNotContains(
+            'cursor',
+            $names,
+            'the document advertises ?cursor= on a route whose runtime answers 400 for it',
+        );
+    }
+
+    #[Test]
+    public function a_cursor_mode_collection_advertises_cursor_and_not_page(): void
+    {
+        $registry  = $this->customerRegistry();
+        $generator = $this->buildGenerator(
+            $registry,
+            new InMemoryDiscovery([ListCursorModeCollectionPayload::class]),
+        );
+
+        $names = $this->parameterNames($generator->generatePaths()['/cursor-collection']['get']);
+
+        self::assertContains('cursor', $names);
+        self::assertNotContains('page', $names, 'a cursor-mode route answers 400 for ?page=');
+        self::assertContains('perPage', $names, 'perPage is accepted in every mode');
+    }
+
+    /**
+     * Single mode answers everything at once and rejects both windowing
+     * parameters, so neither may appear.
+     */
+    #[Test]
+    public function a_single_mode_collection_advertises_neither_page_nor_cursor(): void
+    {
+        $registry  = $this->customerRegistry();
+        $generator = $this->buildGenerator(
+            $registry,
+            new InMemoryDiscovery([ListSingleModeCollectionPayload::class]),
+        );
+
+        $names = $this->parameterNames($generator->generatePaths()['/single-collection']['get']);
+
+        self::assertNotContains('page', $names);
+        self::assertNotContains('cursor', $names);
+    }
+
+    /**
+     * @param array<string, mixed> $operation
+     * @return list<string>
+     */
+    private function parameterNames(array $operation): array
+    {
+        $out = [];
+        foreach ($operation['parameters'] ?? [] as $parameter) {
+            if (is_array($parameter) && isset($parameter['name'])) {
+                $out[] = (string) $parameter['name'];
+            }
+        }
+
+        return $out;
+    }
+}
