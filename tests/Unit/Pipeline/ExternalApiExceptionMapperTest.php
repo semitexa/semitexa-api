@@ -68,20 +68,25 @@ final class ExternalApiExceptionMapperTest extends TestCase
     public function testWithErrorRouteDispatcherForwardsIntoWrappedCoreMapper(): void
     {
         $mapper = $this->makeMapper();
-        $ref = new \ReflectionClass($mapper);
-        $prop = $ref->getProperty('coreMapper');
-        $prop->setAccessible(true);
-        $originalCoreMapper = $prop->getValue($mapper);
+
+        // Through the accessor, not the property. $coreMapper is injected by the
+        // container and created lazily otherwise, so reading the raw property
+        // asserts on WHEN it is initialized rather than on what this method does.
+        $read = static fn(ExternalApiExceptionMapper $m): object => (new \ReflectionMethod(
+            ExternalApiExceptionMapper::class,
+            'coreMapper',
+        ))->invoke($m);
+
+        $originalCoreMapper = $read($mapper);
 
         $dispatcher = $this->makeDispatcher();
         $decorated = $mapper->withErrorRouteDispatcher($dispatcher);
-        $decoratedCoreMapper = $prop->getValue($decorated);
 
         // Must not mutate the original instance.
         self::assertNotSame($mapper, $decorated);
         self::assertInstanceOf(ExternalApiExceptionMapper::class, $decorated);
-        self::assertSame($originalCoreMapper, $prop->getValue($mapper));
-        self::assertNotSame($originalCoreMapper, $decoratedCoreMapper);
+        self::assertSame($originalCoreMapper, $read($mapper));
+        self::assertNotSame($originalCoreMapper, $read($decorated));
     }
 
     private function makeMapper(): ExternalApiExceptionMapper

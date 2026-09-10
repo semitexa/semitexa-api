@@ -47,13 +47,6 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
     #[InjectAsReadonly]
     protected ExceptionMapper $coreMapper;
 
-    public function __construct()
-    {
-        // This class is container-managed, so the constructor must stay parameterless
-        // for GraphBuilder bootstrap. The default keeps direct instantiation usable,
-        // while #[InjectAsReadonly] still replaces it under container management.
-        $this->coreMapper = new ExceptionMapper();
-    }
 
     /**
      * Forward the request-scoped ErrorRouteDispatcher into the wrapped Core mapper
@@ -83,9 +76,19 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
         return $this->coreMapper()->map($e, $request, $metadata);
     }
 
+    /**
+     * The injected mapper, or a plain one when nobody injected anything.
+     *
+     * This used to be a constructor assigning the default. The container never
+     * calls a constructor on a container-managed class — it builds them with
+     * newInstanceWithoutConstructor() — so that line only ever ran for direct
+     * instantiation, which is what the tests do. Lazily here instead: the
+     * container's #[InjectAsReadonly] value wins when there is one, and `??`
+     * reads an uninitialized typed property without throwing.
+     */
     private function coreMapper(): ExceptionMapper
     {
-        return $this->coreMapper;
+        return $this->coreMapper ??= new ExceptionMapper();
     }
 
     private function mapDomainException(
