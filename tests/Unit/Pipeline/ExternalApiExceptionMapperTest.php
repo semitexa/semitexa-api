@@ -14,7 +14,6 @@ use Semitexa\Core\Environment;
 use Semitexa\Core\Error\ErrorRouteDispatcher;
 use Semitexa\Core\Exception\NotFoundException;
 use Semitexa\Core\HttpResponse;
-use Semitexa\Core\Pipeline\ExceptionMapper;
 use Semitexa\Core\Request;
 
 final class ExternalApiExceptionMapperTest extends TestCase

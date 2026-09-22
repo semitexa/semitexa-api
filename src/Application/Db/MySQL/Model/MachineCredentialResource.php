@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Semitexa\Api\Application\Db\MySQL\Model;
 
-use Semitexa\Api\Domain\Model\MachineCredential;
 use Semitexa\Orm\Adapter\MySqlType;
 use Semitexa\Orm\Attribute\Column;
 use Semitexa\Orm\Attribute\FromTable;
