@@ -11,7 +11,6 @@ use Semitexa\Api\OpenApi\OpenApiDocumentBuilder;
 use Semitexa\Api\OpenApi\Route\ResourceRouteSchemaGenerator;
 use Semitexa\Api\OpenApi\Schema\IncludeTokenCollector;
 use Semitexa\Api\OpenApi\Schema\ResourceSchemaGenerator;
-use Semitexa\Core\Discovery\ClassDiscovery;
 use Semitexa\Core\Http\DefaultRouteContractAssembler;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataExtractor;
 use Semitexa\Core\Resource\Metadata\ResourceMetadataRegistry;
