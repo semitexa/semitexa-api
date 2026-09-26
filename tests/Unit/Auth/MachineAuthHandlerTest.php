@@ -147,28 +147,56 @@ final class MachineAuthHandlerTest extends TestCase
         // A lookup miss used to return in microseconds while a live credential
         // costs a full password_verify(): latency alone told which ids exist.
         $dummy = new ReflectionProperty(MachineAuthHandler::class, 'dummyHash');
-        $dummy->setValue(null, null);
+        $saved = $dummy->getValue();
 
-        $repository = new class implements MachineCredentialRepositoryInterface {
-            public function findById(string $id): ?MachineCredential { return null; }
-            public function findByClientName(string $clientName): ?MachineCredential { return null; }
-            public function save(MachineCredential $credential): void {}
-            public function update(MachineCredential $credential): void {}
-            public function findAllActive(?string $tenantId = null): array { return []; }
-        };
+        try {
+            $dummy->setValue(null, null);
 
-        $handler = new MachineAuthHandler();
-        (new ReflectionProperty($handler, 'credentials'))->setValue($handler, $repository);
+            $repository = new class implements MachineCredentialRepositoryInterface {
+                public function findById(string $id): ?MachineCredential { return null; }
+                public function findByClientName(string $clientName): ?MachineCredential { return null; }
+                public function save(MachineCredential $credential): void {}
+                public function update(MachineCredential $credential): void {}
+                public function findAllActive(?string $tenantId = null): array { return []; }
+            };
 
-        $payload = new class(new Request('GET', '/api/x', ['Authorization' => 'Bearer nobody:guess'], [], [], [], [])) {
-            public function __construct(private readonly Request $request) {}
-            public function getHttpRequest(): Request
-            {
-                return $this->request;
+            $handler = new MachineAuthHandler();
+            (new ReflectionProperty($handler, 'credentials'))->setValue($handler, $repository);
+
+            $payload = new class(new Request('GET', '/api/x', ['Authorization' => 'Bearer nobody:guess'], [], [], [], [])) {
+                public function __construct(private readonly Request $request) {}
+                public function getHttpRequest(): Request
+                {
+                    return $this->request;
+                }
+            };
+
+            // First call builds the dummy hash; it must be the credential algorithm.
+            self::assertNull($handler->handle($payload));
+            $hash = $dummy->getValue();
+            self::assertIsString($hash);
+            if (\defined('PASSWORD_ARGON2ID')) {
+                self::assertSame(PASSWORD_ARGON2ID, password_get_info($hash)['algo']);
             }
-        };
 
-        self::assertNull($handler->handle($payload));
-        self::assertIsString($dummy->getValue(), 'the miss path must run password_verify against the dummy hash');
+            // The hash is cached now, so a second miss costs only the verify.
+            // Skipping password_verify() would make it microseconds against a
+            // verify that costs milliseconds: the margin is orders of magnitude.
+            $verifyStart = hrtime(true);
+            password_verify('guess', $hash);
+            $verifyCost = hrtime(true) - $verifyStart;
+
+            $missStart = hrtime(true);
+            self::assertNull($handler->handle($payload));
+            $missCost = hrtime(true) - $missStart;
+
+            self::assertGreaterThan(
+                intdiv($verifyCost, 4),
+                $missCost,
+                'the miss path must run password_verify against the dummy hash',
+            );
+        } finally {
+            $dummy->setValue(null, $saved);
+        }
     }
 }

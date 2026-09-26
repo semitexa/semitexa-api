@@ -86,10 +86,18 @@ final class MachineAuthHandler implements AuthHandlerInterface
         return AuthResult::successAsService(new MachinePrincipal($credential));
     }
 
-    /** A hash with the default cost, so verifying against it costs what a real check costs. */
+    /**
+     * A hash of the algorithm and default cost machine secrets are stored with
+     * (Argon2id, see MachineCredential), so verifying against it costs what a
+     * real wrong-secret check costs. PASSWORD_DEFAULT is bcrypt: a different
+     * price, and the difference itself would be the signal.
+     */
     private static function dummyHash(): string
     {
-        return self::$dummyHash ??= password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+        return self::$dummyHash ??= password_hash(
+            bin2hex(random_bytes(16)),
+            \defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT,
+        );
     }
 
     /**
