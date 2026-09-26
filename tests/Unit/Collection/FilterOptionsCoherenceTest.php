@@ -113,8 +113,11 @@ final class FilterOptionsCoherenceTest extends TestCase
         foreach (self::ROOTS as $pattern) {
             foreach (glob($root . '/' . $pattern, GLOB_ONLYDIR) ?: [] as $dir) {
                 foreach ($this->phpFilesIn($dir) as $file) {
+                    $source = @file_get_contents($file);
+                    if ($source === false) {
+                        self::fail('the sweep could not read ' . $file . ' — an unreadable file is not a cleared file');
+                    }
                     $this->scannedFiles++;
-                    $source = (string) file_get_contents($file);
                     if (!str_contains($source, '#[CollectionFilterOptions')) {
                         continue;
                     }
