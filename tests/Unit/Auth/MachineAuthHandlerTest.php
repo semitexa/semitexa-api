@@ -175,9 +175,12 @@ final class MachineAuthHandlerTest extends TestCase
             self::assertNull($handler->handle($payload));
             $hash = $dummy->getValue();
             self::assertIsString($hash);
-            if (\defined('PASSWORD_ARGON2ID')) {
-                self::assertSame(PASSWORD_ARGON2ID, password_get_info($hash)['algo']);
-            }
+            // Both branches pin a real algorithm: an empty or unknown hash
+            // would make both timed checks cheap and the test meaningless.
+            self::assertSame(
+                \defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT,
+                password_get_info($hash)['algo'],
+            );
 
             // The hash is cached now, so a second miss costs only the verify.
             // Skipping password_verify() would make it microseconds against a
