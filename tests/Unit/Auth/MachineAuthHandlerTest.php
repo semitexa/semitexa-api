@@ -141,4 +141,34 @@ final class MachineAuthHandlerTest extends TestCase
 
         self::assertNull($handler->handle($payload));
     }
+
+    public function testAnUnknownCredentialIdStillPaysForAPasswordCheck(): void
+    {
+        // A lookup miss used to return in microseconds while a live credential
+        // costs a full password_verify(): latency alone told which ids exist.
+        $dummy = new ReflectionProperty(MachineAuthHandler::class, 'dummyHash');
+        $dummy->setValue(null, null);
+
+        $repository = new class implements MachineCredentialRepositoryInterface {
+            public function findById(string $id): ?MachineCredential { return null; }
+            public function findByClientName(string $clientName): ?MachineCredential { return null; }
+            public function save(MachineCredential $credential): void {}
+            public function update(MachineCredential $credential): void {}
+            public function findAllActive(?string $tenantId = null): array { return []; }
+        };
+
+        $handler = new MachineAuthHandler();
+        (new ReflectionProperty($handler, 'credentials'))->setValue($handler, $repository);
+
+        $payload = new class(new Request('GET', '/api/x', ['Authorization' => 'Bearer nobody:guess'], [], [], [], [])) {
+            public function __construct(private readonly Request $request) {}
+            public function getHttpRequest(): Request
+            {
+                return $this->request;
+            }
+        };
+
+        self::assertNull($handler->handle($payload));
+        self::assertIsString($dummy->getValue(), 'the miss path must run password_verify against the dummy hash');
+    }
 }
