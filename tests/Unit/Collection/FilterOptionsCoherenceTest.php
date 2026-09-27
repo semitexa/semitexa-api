@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use Semitexa\Api\Attribute\CollectionFilterable;
 use Semitexa\Api\Attribute\CollectionFilterOptions;
+use Semitexa\Core\Support\ProjectRoot;
 
 /**
  * A #[CollectionFilterOptions] field that is not in the response's
@@ -35,7 +36,9 @@ final class FilterOptionsCoherenceTest extends TestCase
      * fires — so sweeping the fixtures would fail on the fixture that exists to
      * fail.
      */
-    private const ROOTS = ['packages/*/src', 'src/modules/*/src'];
+    private const ROOTS = ['packages/*/src', 'vendor/semitexa/*/src', 'src/modules/*/src'];
+
+    private int $scannedFiles = 0;
 
     #[Test]
     public function every_declared_filter_option_is_inside_its_filter_allowlist(): void
@@ -84,12 +87,17 @@ final class FilterOptionsCoherenceTest extends TestCase
         );
 
         // A scan that stops finding classes passes exactly like a clean
-        // repository. Four production responses declare the attribute today.
-        self::assertGreaterThanOrEqual(
-            4,
-            $checked,
-            'the sweep found almost no responses — it is no longer reading production source',
-        );
+        // repository. Four production responses in the monorepo declare the
+        // attribute today; an installed app may legitimately have none, so
+        // there the guard is that the sweep read source at all.
+        self::assertGreaterThan(0, $this->scannedFiles, 'the sweep read no PHP source — its roots no longer match the layout');
+        if (is_dir(ProjectRoot::get() . '/packages')) {
+            self::assertGreaterThanOrEqual(
+                4,
+                $checked,
+                'the sweep found almost no responses — it is no longer reading production source',
+            );
+        }
     }
 
     /**
@@ -97,15 +105,19 @@ final class FilterOptionsCoherenceTest extends TestCase
      */
     private function responsesDeclaringFilterOptions(): array
     {
-        // __DIR__ is packages/semitexa-api/tests/Unit/Collection, so five levels up
-        // is the project root, not the package.
-        $root = dirname(__DIR__, 5);
+        // The project root, not the package: the package sits at
+        // packages/semitexa-api in the monorepo and vendor/semitexa/api in an app.
+        $root = ProjectRoot::get();
         $found = [];
 
         foreach (self::ROOTS as $pattern) {
             foreach (glob($root . '/' . $pattern, GLOB_ONLYDIR) ?: [] as $dir) {
                 foreach ($this->phpFilesIn($dir) as $file) {
-                    $source = (string) file_get_contents($file);
+                    $source = @file_get_contents($file);
+                    if ($source === false) {
+                        self::fail('the sweep could not read ' . $file . ' — an unreadable file is not a cleared file');
+                    }
+                    $this->scannedFiles++;
                     if (!str_contains($source, '#[CollectionFilterOptions')) {
                         continue;
                     }
@@ -118,6 +130,8 @@ final class FilterOptionsCoherenceTest extends TestCase
             }
         }
 
+        // A monorepo can expose the same package under packages/ and vendor/.
+        $found = array_values(array_unique($found));
         sort($found);
 
         return $found;

@@ -8,6 +8,7 @@ use Semitexa\Api\Domain\Contract\MachineCredentialRepositoryInterface;
 use Semitexa\Auth\Attribute\AsAuthHandler;
 use Semitexa\Auth\Domain\Contract\AuthHandlerInterface;
 use Semitexa\Core\Attribute\InjectAsReadonly;
+use Semitexa\Core\Attribute\WorkerState;
 use Semitexa\Core\Auth\AuthResult;
 use Semitexa\Core\Request;
 
@@ -38,6 +39,9 @@ final class MachineAuthHandler implements AuthHandlerInterface
     #[InjectAsReadonly]
     protected MachineCredentialRepositoryInterface $credentials;
 
+    #[WorkerState('A throwaway hash of a random secret; the same for every request by design.')]
+    private static ?string $dummyHash = null;
+
     public function handle(object $payload): ?AuthResult
     {
         if (!isset($this->credentials)) {
@@ -53,6 +57,14 @@ final class MachineAuthHandler implements AuthHandlerInterface
         [$credentialId, $rawSecret] = $token;
 
         $credential = $this->credentials->findById($credentialId);
+        if ($credential === null || $credential->isRevoked()) {
+            // Pay the same hashing cost as a live credential with a wrong
+            // secret: returning in microseconds here while a real check takes
+            // a full password_verify() let a caller learn, from latency alone,
+            // which credential ids exist and which are active.
+            password_verify($rawSecret, self::dummyHash());
+        }
+
         if ($credential === null) {
             // No credential with this ID — let the next handler try.
             return null;
@@ -72,6 +84,20 @@ final class MachineAuthHandler implements AuthHandlerInterface
         // Service-domain success — the runtime auth gate uses the subject type
         // to refuse service tokens on user-protected routes and vice versa.
         return AuthResult::successAsService(new MachinePrincipal($credential));
+    }
+
+    /**
+     * A hash of the algorithm and default cost machine secrets are stored with
+     * (Argon2id, see MachineCredential), so verifying against it costs what a
+     * real wrong-secret check costs. PASSWORD_DEFAULT is bcrypt: a different
+     * price, and the difference itself would be the signal.
+     */
+    private static function dummyHash(): string
+    {
+        return self::$dummyHash ??= password_hash(
+            bin2hex(random_bytes(16)),
+            \defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT,
+        );
     }
 
     /**
@@ -114,3 +140,4 @@ final class MachineAuthHandler implements AuthHandlerInterface
         ];
     }
 }
+
