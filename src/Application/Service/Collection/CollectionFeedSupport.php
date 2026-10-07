@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Semitexa\Api\Application\Service\Collection;
 
-use ReflectionClass;
-use Semitexa\Api\Attribute\CollectionFilterable;
-use Semitexa\Api\Attribute\CollectionPaginated;
-use Semitexa\Api\Attribute\CollectionSearchable;
-use Semitexa\Api\Attribute\CollectionSortable;
+use Semitexa\Api\Domain\Model\Collection\CollectionDeclarations;
 use Semitexa\Core\Attribute\AsService;
 use Semitexa\Core\Resource\CollectionCriteria;
 use Semitexa\Core\Resource\CollectionPaginationPolicy;
@@ -46,16 +42,19 @@ final class CollectionFeedSupport
 {
     /**
      * Per-response-class collection declarations, resolved once. `criteriaFor()`
-     * runs on EVERY canonical collection request, and the four declarations it
-     * reads (`#[CollectionPaginated]` / `#[CollectionSearchable]` /
-     * `#[CollectionSortable]` / `#[CollectionFilterable]`) are static per class —
-     * so reflecting them on every request is pure waste. Memoize per worker,
-     * mirroring {@see \Semitexa\Api\Application\Service\ApiRouteMetadataResolver}.
+     * runs on EVERY canonical collection request, and the declarations it reads
+     * are static per class — so reflecting them on every request is pure waste.
+     * Memoize per worker, mirroring {@see \Semitexa\Api\Application\Service\ApiRouteMetadataResolver}.
      *
-     * @var array<class-string, array{policy: CollectionPaginationPolicy, searchable: ?CollectionSearchable, sort: list<string>, filter: array<string, list<string>>}>
+     * @var array<class-string, CollectionDeclarations>
      */
     private static array $declarationsCache = [];
 
+    /**
+     * Criteria for a route whose response class carries `#[Collection*]`.
+     *
+     * @param class-string $responseClass
+     */
     public function criteriaFor(
         string $responseClass,
         ?string $rawQ = null,
@@ -65,10 +64,27 @@ final class CollectionFeedSupport
         ?string $rawPerPage = null,
         ?string $rawCursor = null,
     ): CollectionCriteria {
-        $declarations = $this->declarationsFor($responseClass);
+        $declarations = self::$declarationsCache[$responseClass] ??= CollectionDeclarations::fromResponseClass($responseClass);
 
-        $policy     = $declarations['policy'];
-        $searchable = $declarations['searchable'];
+        return $this->criteriaFrom($declarations, $rawQ, $rawSort, $rawFilter, $rawPage, $rawPerPage, $rawCursor);
+    }
+
+    /**
+     * Criteria from declarations however they were made (a field-driven feed
+     * builds its own). The raw query parameters are validated against them;
+     * anything not allowed is a typed 400.
+     */
+    public function criteriaFrom(
+        CollectionDeclarations $declarations,
+        ?string $rawQ = null,
+        ?string $rawSort = null,
+        ?string $rawFilter = null,
+        ?string $rawPage = null,
+        ?string $rawPerPage = null,
+        ?string $rawCursor = null,
+    ): CollectionCriteria {
+        $policy     = $declarations->policy;
+        $searchable = $declarations->searchable;
 
         $cursor           = self::trimToNull($rawCursor);
         $pageWasRequested = self::trimToNull($rawPage) !== null;
@@ -96,11 +112,11 @@ final class CollectionFeedSupport
 
         $sort = CollectionSortRequest::fromQueryParam(
             self::trimToNull($rawSort),
-            $declarations['sort'],
+            $declarations->sort,
         );
         $filter = CollectionFilterRequest::fromQueryParam(
             self::trimToNull($rawFilter),
-            $declarations['filter'],
+            $declarations->filter,
         );
         $page = CollectionPageRequest::fromQueryParams(
             self::trimToNull($rawPage),
@@ -110,8 +126,8 @@ final class CollectionFeedSupport
         );
 
         // `q` only carries meaning when the route declares search; routes
-        // without `#[CollectionSearchable]` have no search param in their
-        // payload contract, so a stray value is simply not search intent.
+        // without a search declaration have no search param in their payload
+        // contract, so a stray value is simply not search intent.
         $q = $searchable !== null ? self::trimToNull($rawQ) : null;
 
         return new CollectionCriteria(
@@ -124,83 +140,6 @@ final class CollectionFeedSupport
             policy:           $policy,
             pageWasRequested: $pageWasRequested,
         );
-    }
-
-    /**
-     * Resolve (and memoize) the four collection declarations for a response
-     * class. Reflection happens once per class per worker; every subsequent
-     * request reuses the cached result.
-     *
-     * @param class-string $responseClass
-     * @return array{policy: CollectionPaginationPolicy, searchable: ?CollectionSearchable, sort: list<string>, filter: array<string, list<string>>}
-     */
-    private function declarationsFor(string $responseClass): array
-    {
-        if (isset(self::$declarationsCache[$responseClass])) {
-            return self::$declarationsCache[$responseClass];
-        }
-
-        $ref = new ReflectionClass($responseClass);
-
-        return self::$declarationsCache[$responseClass] = [
-            'policy'     => $this->policyFor($ref),
-            'searchable' => $this->searchableFor($ref),
-            'sort'       => $this->sortAllowlistFor($ref),
-            'filter'     => $this->filterAllowlistFor($ref),
-        ];
-    }
-
-    /** @param ReflectionClass<object> $ref */
-    private function policyFor(ReflectionClass $ref): CollectionPaginationPolicy
-    {
-        $attrs = $ref->getAttributes(CollectionPaginated::class);
-        if ($attrs === []) {
-            return CollectionPaginationPolicy::default();
-        }
-        /** @var CollectionPaginated $paginated */
-        $paginated = $attrs[0]->newInstance();
-
-        return $paginated->toPolicy();
-    }
-
-    /** @param ReflectionClass<object> $ref */
-    private function searchableFor(ReflectionClass $ref): ?CollectionSearchable
-    {
-        $attrs = $ref->getAttributes(CollectionSearchable::class);
-
-        return $attrs === [] ? null : $attrs[0]->newInstance();
-    }
-
-    /**
-     * @param ReflectionClass<object> $ref
-     * @return list<string>
-     */
-    private function sortAllowlistFor(ReflectionClass $ref): array
-    {
-        $attrs = $ref->getAttributes(CollectionSortable::class);
-        if ($attrs === []) {
-            return [];
-        }
-        /** @var CollectionSortable $sortable */
-        $sortable = $attrs[0]->newInstance();
-
-        return array_values($sortable->fields);
-    }
-
-    /**
-     * @param ReflectionClass<object> $ref
-     * @return array<string, list<string>>
-     */
-    private function filterAllowlistFor(ReflectionClass $ref): array
-    {
-        $attrs = $ref->getAttributes(CollectionFilterable::class);
-        if ($attrs === []) {
-            return [];
-        }
-        /** @var CollectionFilterable $filterable */
-        $filterable = $attrs[0]->newInstance();
-
-        return $filterable->fields;
     }
 
     private static function trimToNull(?string $value): ?string
