@@ -87,7 +87,7 @@ final class DumpOpenApiCommand extends BaseCommand
             return self::SUCCESS;
         }
 
-        $output->write($json);
+        $output->write($json, false, OutputInterface::OUTPUT_RAW);
         return self::SUCCESS;
     }
 
