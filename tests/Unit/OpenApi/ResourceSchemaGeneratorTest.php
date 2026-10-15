@@ -11,6 +11,7 @@ use Semitexa\Api\Tests\Fixtures\Customer\AddressResource as FixtureAddressResour
 use Semitexa\Api\Tests\Fixtures\Customer\CustomerResource as FixtureCustomerResource;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfilePreferencesResource as FixturePreferencesResource;
 use Semitexa\Api\Tests\Fixtures\Customer\ProfileResource as FixtureProfileResource;
+use Semitexa\Api\Tests\Fixtures\Scalar\ScalarTypesResource;
 use Semitexa\Api\Tests\Fixtures\Union\BotResource as UnionBotResource;
 use Semitexa\Api\Tests\Fixtures\Union\CommentResource as UnionCommentResource;
 use Semitexa\Api\Tests\Fixtures\Union\UserResource as UnionUserResource;
@@ -187,5 +188,25 @@ final class ResourceSchemaGeneratorTest extends TestCase
         $g = ResourceSchemaGenerator::forTesting($this->customerRegistry());
         $names = array_keys($g->generateAll());
         self::assertSame(array_unique($names), $names, 'Component names must be unique.');
+    }
+
+    #[Test]
+    public function scalar_fields_publish_their_php_type(): void
+    {
+        $extractor = new ResourceMetadataExtractor();
+        $registry  = ResourceMetadataRegistry::forTesting($extractor);
+        $registry->register($extractor->extract(ScalarTypesResource::class));
+
+        $schema = ResourceSchemaGenerator::forTesting($registry)->generateAll()['ScalarTypesResource'];
+        $props  = $schema['properties'];
+
+        self::assertSame(['type' => 'string'], $props['id']);
+        self::assertSame(['type' => 'boolean'], $props['active']);
+        self::assertSame(['type' => 'integer'], $props['count']);
+        self::assertSame(['type' => 'number'], $props['price']);
+        self::assertSame(['oneOf' => [['type' => 'integer'], ['type' => 'null']]], $props['stock']);
+        self::assertSame(['type' => 'string'], $props['name']);
+        self::assertSame(['type' => 'array'], $props['tags']);
+        self::assertSame(['id', 'active', 'count', 'price', 'name', 'tags'], $schema['required']);
     }
 }

@@ -197,18 +197,32 @@ final class ResourceSchemaGenerator
     /** @return array<string, mixed> */
     private function scalarSchema(ResourceObjectMetadata $parent, ResourceFieldMetadata $field): array
     {
-        // The Phase 1 metadata model does not record raw PHP scalar types;
-        // we conservatively type as string for the id field and arbitrary
-        // scalar for everything else. Phase 3 only cares about the wire
-        // contract, not strict scalar types — those land in Phase 4 with
-        // a richer scalar metadata pass.
-        $type = ['type' => 'string'];
-
+        // The id is always a string on the wire (the extractor refuses
+        // anything else) and is never published as nullable.
         if ($field->name === $parent->idField) {
-            return $type;
+            return ['type' => 'string'];
         }
 
+        $type = ['type' => self::openApiScalarType($field->scalarType)];
+
         return $field->nullable ? ['oneOf' => [$type, ['type' => 'null']]] : $type;
+    }
+
+    /**
+     * Map the PHP type the metadata recorded for a scalar field to its JSON
+     * Schema type. Types with no single JSON counterpart (`mixed`, or metadata
+     * that predates `scalarType`) keep the historical `string`.
+     */
+    private static function openApiScalarType(?string $phpType): string
+    {
+        return match ($phpType) {
+            'int'                   => 'integer',
+            'float'                 => 'number',
+            'bool', 'true', 'false' => 'boolean',
+            // The extractor marks a plain `array` scalar as a list.
+            'array'                 => 'array',
+            default                 => 'string',
+        };
     }
 
     /** @return array<string, mixed> */
