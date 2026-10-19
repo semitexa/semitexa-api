@@ -87,6 +87,13 @@ final class MachineCredentialAccessTest extends TestCase
     }
 
     #[Test]
+    public function an_empty_tenant_is_not_platform_wide(): void
+    {
+        // Only null means "every tenant"; an empty string is a broken binding, refused.
+        self::assertFalse($this->handler($this->credential(tenantId: ''), requestTenant: 'tenant-b')->handle($this->bearer())?->success);
+    }
+
+    #[Test]
     public function a_credential_authenticates_on_its_own_tenant_and_an_unbound_one_on_any(): void
     {
         $own = $this->handler($this->credential(tenantId: 'tenant-a'), requestTenant: 'tenant-a')->handle($this->bearer());

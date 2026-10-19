@@ -85,10 +85,10 @@ final class MachineAuthHandler implements AuthHandlerInterface
 
         // A bearer token is not bound to a host the way a session cookie is:
         // without this, a credential issued for one tenant authenticated on
-        // every other tenant's API, inside that tenant's data scope. No tenant
-        // on the credential means platform-wide.
+        // every other tenant's API, inside that tenant's data scope. Only a null
+        // tenant means platform-wide; an empty one is a broken binding and never matches.
         $boundTo = $credential->getTenantId();
-        if ($boundTo !== null && $boundTo !== '' && $boundTo !== $this->requestTenantId()) {
+        if ($boundTo !== null && $boundTo !== $this->requestTenantId()) {
             return AuthResult::failed('Machine credential is not valid for this tenant.');
         }
 
