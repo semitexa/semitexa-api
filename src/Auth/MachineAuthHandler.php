@@ -11,6 +11,8 @@ use Semitexa\Core\Attribute\InjectAsReadonly;
 use Semitexa\Core\Attribute\WorkerState;
 use Semitexa\Core\Auth\AuthResult;
 use Semitexa\Core\Request;
+use Semitexa\Core\Tenant\TenantContextAccess;
+use Semitexa\Core\Tenant\TenantContextStoreInterface;
 
 /**
  * Authentication handler for machine-to-machine (M2M) API credentials.
@@ -38,6 +40,9 @@ final class MachineAuthHandler implements AuthHandlerInterface
 {
     #[InjectAsReadonly]
     protected MachineCredentialRepositoryInterface $credentials;
+
+    #[InjectAsReadonly]
+    protected TenantContextStoreInterface $tenantContextStore;
 
     #[WorkerState('A throwaway hash of a random secret; the same for every request by design.')]
     private static ?string $dummyHash = null;
@@ -78,6 +83,15 @@ final class MachineAuthHandler implements AuthHandlerInterface
             return AuthResult::failed('Invalid machine credential secret.');
         }
 
+        // A bearer token is not bound to a host the way a session cookie is:
+        // without this, a credential issued for one tenant authenticated on
+        // every other tenant's API, inside that tenant's data scope. Only a null
+        // tenant means platform-wide; an empty one is a broken binding and never matches.
+        $boundTo = $credential->getTenantId();
+        if ($boundTo !== null && $boundTo !== $this->requestTenantId()) {
+            return AuthResult::failed('Machine credential is not valid for this tenant.');
+        }
+
         $credential = $credential->recordUsage(new \DateTimeImmutable());
         $this->credentials->update($credential);
 
@@ -97,6 +111,14 @@ final class MachineAuthHandler implements AuthHandlerInterface
         return self::$dummyHash ??= password_hash(
             bin2hex(random_bytes(16)),
             \defined('PASSWORD_ARGON2ID') ? PASSWORD_ARGON2ID : PASSWORD_DEFAULT,
+        );
+    }
+
+    /** The tenant this request resolved to, "default" on a single-tenant install. */
+    private function requestTenantId(): string
+    {
+        return TenantContextAccess::tenantIdOrDefault(
+            isset($this->tenantContextStore) ? $this->tenantContextStore->tryGet() : null,
         );
     }
 
