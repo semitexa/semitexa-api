@@ -111,7 +111,7 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
         $response = HttpResponse::json($body, $status->value);
 
         if ($e instanceof RateLimitException) {
-            $response = $response->withHeaders(['Retry-After' => (string) $e->getRetryAfter()]);
+            $response = $response->withHeaders($e->headers());
         }
 
         return $response;
