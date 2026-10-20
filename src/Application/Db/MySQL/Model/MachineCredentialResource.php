@@ -42,4 +42,7 @@ class MachineCredentialResource
 
     #[Column(type: MySqlType::Datetime, nullable: true)]
     public ?\DateTimeImmutable $revoked_at = null;
+
+    #[Column(type: MySqlType::Datetime, nullable: true)]
+    public ?\DateTimeImmutable $expires_at = null;
 }
