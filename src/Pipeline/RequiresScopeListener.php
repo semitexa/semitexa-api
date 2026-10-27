@@ -22,7 +22,13 @@ final class RequiresScopeListener implements PipelineListenerInterface
 {
     public function handle(RequestPipelineContext $context): void
     {
-        $required = (new \ReflectionClass($context->requestDto))->getAttributes(RequiresScope::class);
+        // Read up the class chain: a payload with payload parts arrives as a
+        // generated subclass (PayloadFactory), and attributes are not
+        // inherited — read off that subclass alone, the scope was never asked.
+        $required = [];
+        for ($class = new \ReflectionClass($context->requestDto); $class !== false && $required === []; $class = $class->getParentClass()) {
+            $required = $class->getAttributes(RequiresScope::class);
+        }
         if ($required === []) {
             return;
         }

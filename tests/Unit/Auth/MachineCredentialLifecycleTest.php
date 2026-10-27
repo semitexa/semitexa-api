@@ -6,6 +6,7 @@ namespace Semitexa\Api\Tests\Unit\Auth;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use Semitexa\Api\Application\Console\Command\CredentialRevokeCommand;
 use Semitexa\Api\Application\Service\Credential\CredentialLifetime;
 use Semitexa\Api\Application\Service\Credential\MachineCredentialIssuer;
 use Semitexa\Api\Attribute\RequiresScope;
@@ -24,6 +25,8 @@ use Semitexa\Core\Tenant\Layer\TenantLayerInterface;
 use Semitexa\Core\Tenant\Layer\TenantLayerValueInterface;
 use Semitexa\Core\Tenant\TenantContextInterface;
 use Semitexa\Core\Tenant\TenantContextStoreInterface;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * A credential is issued by a command now, expires when told to, and a route
@@ -150,6 +153,45 @@ final class MachineCredentialLifecycleTest extends TestCase
         $listener->handle($this->context(new UnscopedPayload(), null));
     }
 
+    /** A payload with payload parts arrives as a generated subclass, and the attribute is on its parent. */
+    #[Test]
+    public function the_scope_on_a_payload_holds_for_the_subclass_its_parts_are_composed_into(): void
+    {
+        $listener = new RequiresScopeListener();
+
+        try {
+            $listener->handle($this->context(new ComposedScopedPayload(), ['orders:read']));
+            self::fail('an under-scoped credential reached the handler through the subclass');
+        } catch (AccessDeniedException $denied) {
+            self::assertSame('This credential lacks the scope orders:write.', $denied->getMessage());
+        }
+
+        $listener->handle($this->context(new ComposedScopedPayload(), ['orders:write']));
+        $this->addToAssertionCount(1);
+    }
+
+    /** Rotating an expired credential printed a token that its first call was refused with. */
+    #[Test]
+    public function an_expired_credential_is_not_rotated(): void
+    {
+        $store = new LifecycleCredentials();
+        $issuer = $this->issuer($store);
+        $id = 'c0ffee00c0ffee00';
+        $hash = 'the-old-hash';
+        $store->byId[$id] = new MachineCredential(id: $id, clientName: 'erp-sync', secretHash: $hash, scopes: ['orders:read'], expiresAt: new \DateTimeImmutable('-1 minute'));
+        $command = new CredentialRevokeCommand();
+        (new \ReflectionProperty($command, 'credentials'))->setValue($command, $store);
+        (new \ReflectionProperty($command, 'issuer'))->setValue($command, $issuer);
+        $tester = new CommandTester($command);
+
+        $exit = $tester->execute(['id' => $id, '--rotate' => true]);
+
+        self::assertSame(Command::FAILURE, $exit);
+        self::assertStringContainsString("Machine credential {$id} has expired", preg_replace('/\s+/', ' ', $tester->getDisplay()) ?? '');
+        self::assertStringNotContainsString('Authorization: Bearer', $tester->getDisplay());
+        self::assertSame($hash, $store->byId[$id]->getSecretHash(), 'the secret is left as it was');
+    }
+
     /** @param list<string>|null $scopes null = not a machine credential */
     private function context(object $payload, ?array $scopes): RequestPipelineContext
     {
@@ -194,6 +236,16 @@ final class ScopedOrdersPayload
 }
 
 final class UnscopedPayload
+{
+}
+
+#[RequiresScope('orders:write')]
+class PartsScopedPayload
+{
+}
+
+/** What PayloadFactory generates for a payload with payload parts: a subclass carrying the traits. */
+final class ComposedScopedPayload extends PartsScopedPayload
 {
 }
 

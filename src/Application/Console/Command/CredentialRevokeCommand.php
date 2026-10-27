@@ -48,6 +48,13 @@ final class CredentialRevokeCommand extends BaseCommand
         }
 
         if ($input->getOption('rotate')) {
+            // A new secret keeps the expiry, and nothing here extends it: the
+            // token printed would be refused on its first call.
+            if ($credential->isExpired()) {
+                $io->error("Machine credential {$id} has expired; a new secret would not revive it. Issue a new one with api:credential:issue.");
+
+                return self::FAILURE;
+            }
             $issued = $this->issuer->rotate($credential);
             $io->success("New secret for {$credential->getClientName()}; the old one no longer works.");
             $io->writeln('  Authorization: Bearer ' . $issued->token);
