@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Semitexa\Api\Auth;
 
 use Semitexa\Api\Domain\Contract\MachineCredentialRepositoryInterface;
+use Semitexa\Api\Domain\Contract\MachineCredentialUsageRecorderInterface;
 use Semitexa\Auth\Attribute\AsAuthHandler;
 use Semitexa\Auth\Domain\Contract\AuthHandlerInterface;
 use Semitexa\Core\Attribute\InjectAsReadonly;
@@ -31,7 +32,7 @@ use Semitexa\Core\Tenant\TenantContextStoreInterface;
  * Security notes:
  * - Secret comparison is performed via MachineCredential::verifySecret(), which
  *   delegates to password_verify() — constant-time by design.
- * - Revoked credentials are rejected even when the secret is correct.
+ * - Revoked and expired credentials are rejected even when the secret is correct.
  * - Usage is recorded (lastUsedAt + requestCount) on every successful auth;
  *   the repository implementation decides whether to flush synchronously or defer.
  */
@@ -62,7 +63,8 @@ final class MachineAuthHandler implements AuthHandlerInterface
         [$credentialId, $rawSecret] = $token;
 
         $credential = $this->credentials->findById($credentialId);
-        if ($credential === null || $credential->isRevoked()) {
+        $now = new \DateTimeImmutable();
+        if ($credential === null || $credential->isRevoked() || $credential->isExpired($now)) {
             // Pay the same hashing cost as a live credential with a wrong
             // secret: returning in microseconds here while a real check takes
             // a full password_verify() let a caller learn, from latency alone,
@@ -79,6 +81,10 @@ final class MachineAuthHandler implements AuthHandlerInterface
             return AuthResult::failed('Machine credential has been revoked.');
         }
 
+        if ($credential->isExpired($now)) {
+            return AuthResult::failed('Machine credential has expired.');
+        }
+
         if (!$credential->verifySecret($rawSecret)) {
             return AuthResult::failed('Invalid machine credential secret.');
         }
@@ -92,8 +98,15 @@ final class MachineAuthHandler implements AuthHandlerInterface
             return AuthResult::failed('Machine credential is not valid for this tenant.');
         }
 
-        $credential = $credential->recordUsage(new \DateTimeImmutable());
-        $this->credentials->update($credential);
+        // Only the audit columns: writing the whole row read before the
+        // password check could put back a revoke or rotation made meanwhile.
+        if ($this->credentials instanceof MachineCredentialUsageRecorderInterface) {
+            $this->credentials->recordUsage($credential->getId(), $now);
+            $credential = $credential->recordUsage($now);
+        } else {
+            $credential = $credential->recordUsage($now);
+            $this->credentials->update($credential);
+        }
 
         // Service-domain success — the runtime auth gate uses the subject type
         // to refuse service tokens on user-protected routes and vice versa.
@@ -156,10 +169,22 @@ final class MachineAuthHandler implements AuthHandlerInterface
             return null;
         }
 
-        return [
-            substr($rawToken, 0, $colonPos),
-            substr($rawToken, $colonPos + 1),
-        ];
+        $id = substr($rawToken, 0, $colonPos);
+        if (!self::canBeAnId($id)) {
+            return null;
+        }
+
+        return [$id, substr($rawToken, $colonPos + 1)];
+    }
+
+    /**
+     * The ORM reads a 36-character id with a dash as a UUID and converts it,
+     * so a malformed one (`zzzzzzzz-zzzz-…`) threw a TypeError from the
+     * lookup and every page answered 500. Such an id names no credential.
+     */
+    public static function canBeAnId(string $id): bool
+    {
+        return !(strlen($id) === 36 && str_contains($id, '-'))
+            || preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $id) === 1;
     }
 }
-

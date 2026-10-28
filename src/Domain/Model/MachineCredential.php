@@ -42,6 +42,8 @@ final readonly class MachineCredential
         int $requestCount = 0,
         private readonly ?\DateTimeImmutable $rotatedAt = null,
         private readonly ?\DateTimeImmutable $revokedAt = null,
+        /** After this the credential no longer authenticates; null = no expiry. */
+        private readonly ?\DateTimeImmutable $expiresAt = null,
     ) {
         $this->requestCount = max(0, $requestCount);
     }
@@ -82,9 +84,19 @@ final readonly class MachineCredential
         return $this->revokedAt !== null;
     }
 
-    public function isActive(): bool
+    public function isActive(?\DateTimeImmutable $now = null): bool
     {
-        return $this->revokedAt === null;
+        return $this->revokedAt === null && !$this->isExpired($now);
+    }
+
+    public function isExpired(?\DateTimeImmutable $now = null): bool
+    {
+        return $this->expiresAt !== null && $this->expiresAt <= ($now ?? new \DateTimeImmutable());
+    }
+
+    public function getExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->expiresAt;
     }
 
     public function getCreatedAt(): \DateTimeImmutable
@@ -127,6 +139,7 @@ final readonly class MachineCredential
             requestCount: $this->requestCount,
             rotatedAt: $this->rotatedAt,
             revokedAt: $revokedAt ?? new \DateTimeImmutable(),
+            expiresAt: $this->expiresAt,
         );
     }
 
@@ -147,6 +160,7 @@ final readonly class MachineCredential
             requestCount: $this->requestCount,
             rotatedAt: $rotatedAt ?? new \DateTimeImmutable(),
             revokedAt: $this->revokedAt,
+            expiresAt: $this->expiresAt,
         );
     }
 
@@ -167,6 +181,7 @@ final readonly class MachineCredential
             requestCount: $this->requestCount + 1,
             rotatedAt: $this->rotatedAt,
             revokedAt: $this->revokedAt,
+            expiresAt: $this->expiresAt,
         );
     }
 

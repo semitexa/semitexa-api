@@ -27,6 +27,7 @@ final class MachineCredentialMapper implements ResourceModelMapperInterface
             requestCount: $resourceModel->requestCount,
             rotatedAt: $resourceModel->rotatedAt,
             revokedAt: $resourceModel->revokedAt,
+            expiresAt: $resourceModel->expiresAt,
         );
     }
 
@@ -45,6 +46,7 @@ final class MachineCredentialMapper implements ResourceModelMapperInterface
             requestCount: $domainModel->getRequestCount(),
             rotatedAt: $domainModel->getRotatedAt(),
             revokedAt: $domainModel->getRevokedAt(),
+            expiresAt: $domainModel->getExpiresAt(),
         );
     }
 }

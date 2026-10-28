@@ -51,5 +51,8 @@ final readonly class MachineCredentialResourceModel
 
         #[Column(name: 'revoked_at', type: MySqlType::Datetime, nullable: true)]
         public ?\DateTimeImmutable $revokedAt,
+
+        #[Column(name: 'expires_at', type: MySqlType::Datetime, nullable: true)]
+        public ?\DateTimeImmutable $expiresAt = null,
     ) {}
 }

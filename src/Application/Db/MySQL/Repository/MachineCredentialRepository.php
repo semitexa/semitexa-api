@@ -6,15 +6,17 @@ namespace Semitexa\Api\Application\Db\MySQL\Repository;
 
 use Semitexa\Api\Application\Db\MySQL\Model\MachineCredentialResourceModel;
 use Semitexa\Api\Domain\Contract\MachineCredentialRepositoryInterface;
+use Semitexa\Api\Domain\Contract\MachineCredentialUsageRecorderInterface;
 use Semitexa\Api\Domain\Model\MachineCredential;
 use Semitexa\Core\Attribute\InjectAsReadonly;
 use Semitexa\Core\Attribute\SatisfiesRepositoryContract;
+use Semitexa\Orm\Application\Service\Uuid7;
 use Semitexa\Orm\OrmManager;
 use Semitexa\Orm\Query\Direction;
 use Semitexa\Orm\Repository\DomainRepository;
 
 #[SatisfiesRepositoryContract(of: MachineCredentialRepositoryInterface::class)]
-final class MachineCredentialRepository implements MachineCredentialRepositoryInterface
+final class MachineCredentialRepository implements MachineCredentialRepositoryInterface, MachineCredentialUsageRecorderInterface
 {
     #[InjectAsReadonly]
     protected OrmManager $orm;
@@ -45,6 +47,16 @@ final class MachineCredentialRepository implements MachineCredentialRepositoryIn
     public function update(MachineCredential $credential): void
     {
         $this->repository()->update($credential);
+    }
+
+    public function recordUsage(string $credentialId, \DateTimeImmutable $at): void
+    {
+        $this->orm()->getAdapter()->execute(
+            'UPDATE api_machine_credentials
+             SET last_used_at = :at, request_count = request_count + 1
+             WHERE id = :id AND revoked_at IS NULL',
+            ['at' => $at->format('Y-m-d H:i:s'), 'id' => Uuid7::toBytes($credentialId)],
+        );
     }
 
     public function findAllActive(?string $tenantId = null): array
