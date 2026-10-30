@@ -27,6 +27,8 @@ use Attribute;
  *         perPageOptions: [5, 10, 25], maxPerPage: 25, countThreshold: 10)]
  *     final class PingCollectionJsonResponse extends JsonResourceResponse
  *     { ... }
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class CollectionPaginated

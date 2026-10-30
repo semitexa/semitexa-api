@@ -30,6 +30,8 @@ use Attribute;
  *     #[CollectionSearchable(fields: ['label'])]
  *     final class PingCollectionJsonResponse extends JsonResourceResponse
  *     { ... }
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class CollectionSearchable

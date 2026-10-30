@@ -23,6 +23,8 @@ use Attribute;
  * #[ExternalApi(version: 'v1')]
  * class OrderListPayload { ... }
  * ```
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class ExternalApi

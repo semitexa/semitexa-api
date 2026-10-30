@@ -19,6 +19,8 @@ use Attribute;
  *     #[ProducesResourceObject(CustomerResource::class)]
  *     final class CustomerJsonResponse extends JsonResourceResponse implements ResourceInterface
  *     { ... }
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class ProducesResourceObject

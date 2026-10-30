@@ -25,6 +25,8 @@ use Attribute;
  * #[ApiVersion(version: '1.0.0', deprecatedSince: '2026-06-01', sunsetDate: '2026-12-01')]
  * class UserListPayload { ... }
  * ```
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class ApiVersion
