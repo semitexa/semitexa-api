@@ -11,6 +11,8 @@ use Attribute;
  * handler; any other caller gets 403. Scopes match by exact name, no wildcards.
  * Put it on a service payload (#[AsServicePayload]): a user session carries no
  * scopes, so it is refused too.
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final readonly class RequiresScope

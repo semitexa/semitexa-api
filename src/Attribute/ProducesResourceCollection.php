@@ -34,6 +34,8 @@ use Attribute;
  *     #[ProducesResourceCollection(CustomerResource::class)]
  *     final class CustomerCollectionJsonResponse extends JsonResourceResponse implements ResourceInterface
  *     { ... }
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class ProducesResourceCollection

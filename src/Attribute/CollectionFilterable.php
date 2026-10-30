@@ -35,6 +35,8 @@ use Attribute;
  * wire-form strings declared on
  * `Semitexa\Core\Resource\Filter\FilterOperator` (`eq`, `in`,
  * `contains`).
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class CollectionFilterable

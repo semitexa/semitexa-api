@@ -20,6 +20,8 @@ use Attribute;
  * Every declared field must also be in the route's
  * `#[CollectionFilterable]` allowlist — options for a field a client
  * cannot filter by would be dead weight; the contributor enforces it.
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class CollectionFilterOptions

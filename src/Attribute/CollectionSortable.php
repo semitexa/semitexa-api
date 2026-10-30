@@ -27,6 +27,8 @@ use Attribute;
  * Field names must be plain scalar fields on the resource — the
  * parser rejects dotted / nested paths. An empty list disables sort
  * for the route (the parameter is not advertised).
+ *
+ * @api
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 final class CollectionSortable
