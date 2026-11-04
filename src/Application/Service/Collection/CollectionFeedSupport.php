@@ -111,7 +111,7 @@ final class CollectionFeedSupport
         }
 
         $sort = CollectionSortRequest::fromQueryParam(
-            self::trimToNull($rawSort),
+            self::trimToNull($rawSort) ?? $declarations->defaultSort,
             $declarations->sort,
         );
         $filter = CollectionFilterRequest::fromQueryParam(

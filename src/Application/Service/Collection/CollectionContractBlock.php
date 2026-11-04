@@ -52,6 +52,9 @@ final class CollectionContractBlock
         $collection = ['pagination' => $pagination];
         if ($declarations->sort !== []) {
             $collection['sort'] = ['fields' => $declarations->sort];
+            if ($declarations->defaultSort !== null) {
+                $collection['sort']['default'] = $declarations->defaultSort;
+            }
         }
         if ($declarations->filter !== []) {
             $collection['filter'] = ['fields' => $declarations->filter];
