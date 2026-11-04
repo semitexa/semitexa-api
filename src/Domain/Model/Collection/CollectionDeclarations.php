@@ -10,6 +10,8 @@ use Semitexa\Api\Attribute\CollectionFilterOptions;
 use Semitexa\Api\Attribute\CollectionPaginated;
 use Semitexa\Api\Attribute\CollectionSearchable;
 use Semitexa\Api\Attribute\CollectionSortable;
+use Semitexa\Core\Resource\Exception\InvalidSortException;
+use Semitexa\Core\Resource\Sort\CollectionSortRequest;
 use Semitexa\Core\Resource\CollectionPaginationPolicy;
 
 /**
@@ -28,6 +30,7 @@ final readonly class CollectionDeclarations
      * @param list<string>                $sort          sortable fields
      * @param array<string, list<string>> $filter        filterable field → operators
      * @param list<string>                $filterOptions filterable fields whose options the server feeds
+     * @param string|null                 $defaultSort   the order a request without `?sort=` gets, as `?sort=` writes it
      */
     public function __construct(
         public CollectionPaginationPolicy $policy,
@@ -35,10 +38,19 @@ final readonly class CollectionDeclarations
         public array $sort = [],
         public array $filter = [],
         public array $filterOptions = [],
+        public ?string $defaultSort = null,
     ) {
         foreach ($filterOptions as $field) {
             if (!array_key_exists($field, $filter)) {
                 throw new \LogicException(sprintf('Filter options for "%s", which is not a filterable field.', $field));
+            }
+        }
+        if ($defaultSort !== null) {
+            // Refused here: left to the request, every visitor without a sort would get a 400.
+            try {
+                CollectionSortRequest::fromQueryParam($defaultSort, $sort);
+            } catch (InvalidSortException $e) {
+                throw new \LogicException(sprintf('Default sort "%s" is not a sort this collection allows: %s.', $defaultSort, $e->getMessage()), previous: $e);
             }
         }
     }
@@ -92,6 +104,7 @@ final readonly class CollectionDeclarations
             sort:          $sortable !== null ? array_values($sortable->fields) : [],
             filter:        $filter,
             filterOptions: $optionFields,
+            defaultSort:   $sortable?->default,
         );
     }
 }

@@ -33,9 +33,13 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 final class CollectionSortable
 {
-    /** @param list<string> $fields explicit allowlist; order matters for OpenAPI docs */
+    /**
+     * @param list<string> $fields  explicit allowlist; order matters for OpenAPI docs
+     * @param string|null  $default the order a request without `?sort=` gets, as `?sort=` writes it
+     */
     public function __construct(
         public readonly array $fields,
+        public readonly ?string $default = null,
     ) {
     }
 }

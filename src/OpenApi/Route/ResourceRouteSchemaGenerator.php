@@ -213,7 +213,7 @@ final class ResourceRouteSchemaGenerator
             // parser then rejects every non-empty value.
             $sortFields = $collection['sort']['fields'] ?? [];
             if ($sortFields !== []) {
-                $parameters[] = $this->buildSortParameter($sortFields);
+                $parameters[] = $this->buildSortParameter($sortFields, $collection['sort']['default'] ?? null);
             }
 
             // Phase 6k: a collection response that carries
@@ -690,7 +690,7 @@ final class ResourceRouteSchemaGenerator
      * @param list<string> $allowedFields
      * @return array<string, mixed>
      */
-    private function buildSortParameter(array $allowedFields): array
+    private function buildSortParameter(array $allowedFields, ?string $default = null): array
     {
         $allowed = implode(', ', $allowedFields);
         $singleFieldEnum = [];
@@ -721,7 +721,7 @@ final class ResourceRouteSchemaGenerator
                 // ReDoc). Examples-not-enum: comma-separated forms
                 // are valid but cannot be enumerated finitely.
                 'example' => $allowedFields[0],
-            ],
+            ] + ($default !== null ? ['default' => $default] : []),
         ];
     }
 
