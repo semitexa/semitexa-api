@@ -13,6 +13,8 @@ use Semitexa\Core\Discovery\RouteRegistry;
 use Semitexa\Core\Environment;
 use Semitexa\Core\Error\ErrorRouteDispatcher;
 use Semitexa\Core\Exception\NotFoundException;
+use Semitexa\Core\Exception\RateLimitException;
+use Semitexa\Core\Exception\ServiceUnavailableException;
 use Semitexa\Core\HttpResponse;
 use Semitexa\Core\Request;
 
@@ -42,6 +44,32 @@ final class ExternalApiExceptionMapperTest extends TestCase
         self::assertArrayHasKey('context', $decoded['error']);
         self::assertArrayHasKey('request_id', $decoded['error']);
         self::assertArrayHasKey('docs_url', $decoded['error']);
+    }
+
+    /**
+     * tk-external-api-503-has-no-retry-after: the mapper added headers only for a
+     * 429, so a 503 (ServiceUnavailableException, e.g. a POST during a session
+     * store outage) reached an #[ExternalApi] client without Retry-After.
+     */
+    public function testExternalApi503CarriesRetryAfterAnd429KeepsItsHeaders(): void
+    {
+        $mapper = $this->makeMapper();
+        $request = new Request('POST', '/api/orders', ['Accept' => 'application/json'], [], [], [], []);
+        $metadata = $this->makeMetadata(extensions: ['external_api' => ['version' => 'v1']]);
+
+        $unavailable = $mapper->map(new ServiceUnavailableException(), $request, $metadata);
+        self::assertSame(503, $unavailable->getStatusCode());
+        self::assertSame('1', $unavailable->getHeaders()['Retry-After'] ?? null);
+        $decoded = json_decode($unavailable->getContent(), true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($decoded);
+        $error = $decoded['error'] ?? null;
+        self::assertIsArray($error);
+        self::assertSame(['service_unavailable', ['retry_after' => 1]], [$error['code'] ?? null, $error['context'] ?? null]);
+
+        $limited = $mapper->map(new RateLimitException(30, 100), $request, $metadata);
+        $headers = $limited->getHeaders();
+        self::assertSame(429, $limited->getStatusCode());
+        self::assertSame(['30', '100', '0', '30'], [$headers['Retry-After'] ?? null, $headers['RateLimit-Limit'] ?? null, $headers['RateLimit-Remaining'] ?? null, $headers['RateLimit-Reset'] ?? null]);
     }
 
     public function testNonExternalRouteFallsThroughToCoreMapper(): void
