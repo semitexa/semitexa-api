@@ -10,7 +10,7 @@ use Semitexa\Core\Contract\ExceptionResponseMapperInterface;
 use Semitexa\Core\Discovery\ResolvedRouteMetadata;
 use Semitexa\Core\Error\ErrorRouteDispatcher;
 use Semitexa\Core\Exception\DomainException;
-use Semitexa\Core\Exception\RateLimitException;
+use Semitexa\Core\Http\CarriesResponseHeadersInterface;
 use Semitexa\Core\Pipeline\ExceptionMapper;
 use Semitexa\Core\Request;
 use Semitexa\Core\HttpResponse;
@@ -110,7 +110,9 @@ final class ExternalApiExceptionMapper implements ExceptionResponseMapperInterfa
 
         $response = HttpResponse::json($body, $status->value);
 
-        if ($e instanceof RateLimitException) {
+        // Every exception that carries response headers, not only a 429: a 503
+        // lost its Retry-After here (tk-external-api-503-has-no-retry-after).
+        if ($e instanceof CarriesResponseHeadersInterface) {
             $response = $response->withHeaders($e->headers());
         }
 
